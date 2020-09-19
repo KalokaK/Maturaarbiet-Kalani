@@ -1,6 +1,5 @@
 % !TEX program = pdflatex+makeindex+bibtex
-% !TEX encoding = UTF-8 Unicode
-% !TEX spellcheck = de_ch
+% !TEX encoding = UTF-8 Unicodede_ch
 
 % created by Simon Schälli <simon.schaelli@kantiwattwil.ch>
 % v1.0 ursprüngliche Version
@@ -16,13 +15,13 @@
 %======================================================================%
 %=== Dokumentklasse wählen                                          ===%
 %======================================================================%
-\documentclass[a4paper,twoside,openright]{scrreprt}
+\documentclass[a4paper,openright]{scrreprt}
 
 %======================================================================%
 %=== Pakete einbinden                                               ===%
 %======================================================================%
 \usepackage[utf8]{inputenc}
-\usepackage[ngerman]{babel}
+\usepackage[english]{babel}
 
 % Latin Modern Schriftart
 \usepackage{lmodern}
@@ -31,12 +30,13 @@
 % Mathematik-Pakete
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage[mathscr]{euscript}
 
 % mathematische Buchstaben als Text
 \usepackage{textcomp}
 
 % komfortable Referenzen mit \fref
-\usepackage[german]{fancyref}
+\usepackage[english]{fancyref}
 
 % Kopf- und Fusszeilen
 \usepackage[automark,headsepline]{scrpage2}
@@ -66,18 +66,25 @@
 % Hyperlinks in PDF
 \usepackage{hyperref}
 
+% Biblatex
+\usepackage[
+backend=biber,
+style=numeric,
+sorting=ynt
+]{biblatex}
+\addbibresource{Bibliography.bib}
+
 %======================================================================%
 %=== Angaben zum Dokument                                           ===%
 %======================================================================%
 
-\titlehead{Kantonsschule Wattwil \hfill Hans Muster\\
-Fachschaft Freizeit \hfill Musterweg 42\\
-Näppisuelistrasse 11 \hfill 9999 Nirgendwo\\
-9630 Wattwil}
-\subject{Maturaarbeit}
-\title{Meine Maturaarbeit}
-\subtitle{Untertitel der Arbeit}
-\author{\texorpdfstring{Hans Muster\\[1cm]\includegraphics[scale=0.2]{figures/matlabgraph}\\[1cm] {\small Betreuer: Lehrer Beispiel}}{Hans Muster}}
+\titlehead{Kantonsschule im Lee \hfill Kalani Fin Kistler\\
+Fachschaft Mathematik \hfill Dättnauerstrasse 107\\
+Rychenbergstrasse \hfill 8406 Winterthur\\
+8400 Winterthur}
+\subject{Matura Thesis}
+\title{An Exploration of Applied Reinforcement Learning}
+\author{\texorpdfstring{Kalani Fin Kistler \\[1cm]\includegraphics[scale=0.2]{figures/matlabgraph}\\[1cm] {\small Superviser: Elena Fattorini}}{Kalani Fin Kistler}}
 \date{\small xx.xx.20xx}
 %======================================================================%
 %=== PDF Dokumenteinstellungen                                      ===%
@@ -110,17 +117,12 @@ Näppisuelistrasse 11 \hfill 9999 Nirgendwo\\
 \pagenumbering{arabic} % <- arabische Seitennummerierung
 
 % Kapitel einbinden:
-\input{chapters/vorwort}
-\input{chapters/einleitung}
-\input{chapters/materialundmethode}
-\input{chapters/ergebnisse}
-\lipsum[1-10]
-\input{chapters/diskussion}
-\input{chapters/schluss}
+\input{chapters/introduction}
+\input{chapters/theory}
 
-\appendix % <- Anhang
-\listoffigures % <- Abbildungsverzeichnis
-\listoftables  % <- Tabellenverzeichnis
-\input{chapters/bibliography} % <- Literaturverzeichnis
+\input{chapters/bibliography} 
 
+\appendix 
+\listoffigures 
+\listoftables 
 \end{document}
