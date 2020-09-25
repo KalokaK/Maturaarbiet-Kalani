@@ -8,22 +8,23 @@ As such it is at the interface between the natural and to us intuitive concept o
 
 \subsection*{Example: Card game UNO}\label{subsec:UNO}
 
-\begin{figure}[h!]
+\begin{figure}[ht]
     \centering
-    \includegraphics{}
-    \caption{Game of UNO in the context of RL}
-    \label{fig:uno_game}
+    \includegraphics[width=\linewidth]{figures/UNO.png}
+    \caption{UNO environment in the context of RL}
+    \label{fig:UNO}
 \end{figure}
 
+\noindent
 To do so, consider the example of playing the popular card game “UNO”. The \textit{objective} of the game is to rid oneself of the cards on your hand while preventing the other players from doing so. We can label the game as an \textit{environment}. This environment contains all the players, the cards and also what rules the game follows. This  can be in an any arbitrary \textit{state s}. A state of an environment describes the arrangement of all components belonging to the environment, the hands of the players, who's turn it is, what cards are on which pile and what order they are in. Notice that the environment contains a lot of information which the player which we call an \textit{agent}, an actor in the environment, does not know about. However, the actor can \textit{observe} the environment and thus gain a reasonably accurate representation of it’s state. Say it is the agents turn. Based on its \textit{observation} the agent can take an \textit{action a}, the agent can play any of the cards on its hand, or pick one up. It might not be able to play every card or none at all, and it attempting to take an action which the rules of the environment disallow will result in the same state, where it is the agents turn, but the other players will have told the agent that their action is invalid, in other words the environment will have given it a negative \textit{reward signal}. Based on the \textit{reward} the agent then can update its way of acting to produce a different action next time. The way of acting of an agent in a state given an observation of that state, is called a \textit{policy, } $\pi$. The agent can follow a policy to obtain an action.
 \newline
 For the sake of brevity, unless the distinction is relevant, I am going to equate observation and state moving forward. Much more expansive definitions going in to the nuances of these concepts can be found in the book \textit{Reinforcement Learning, An introduction} by Richard Sutton and Andrew Barto. \cite{sutton_reinforcement_2018}
 
 \subsection*{Why chose Reinforcement Learning over other approaches?}\label{subsec:Why_RL}
 In a simple example like UNO Reinforcement Learning might indeed not be the best approach. All the rules of UNO are known to the player, and the set of all possible states is fairly limited. The player also knows about all the cards in the game and thus an algorithm which takes in all the information available to the player, computes the card which yields the highest probability of success and chooses the action which has the highest probability of leading to victory. However, this approach requires full knowledge of how the environment operates \cite[p. 8]{sutton_reinforcement_2018}. This quickly becomes unfeasible as the environment grows more complex. Reinforcement learning lets us generate high quality solutions in uncertain environments based on a reward signal and the goal it ultimately describes \cite[p. 03]{sutton_reinforcement_2018}. Another approach which might come to mind as an obvious solution would be to simply mimic the behaviour of an optimal, or close to, agent. However, this again is impractical since such an agent might simply not exist or generating sufficient examples can be tedious. As stated in Reinforcement Learning, An Introduction: “In uncharted territory—where one would expect learning to be most beneficial—an agent must be able to learn from its own experience.” \cite[p. 02]{sutton_reinforcement_2018} Here it is important to keep in mind that uncharted environments for machines are vastly different from those of a human. There might very well be uncountable examples of brewing a coffee, but possibly non of how to power a series of motors based on a video feed in order to achieve that same goal.
-\newpage
+
 \section{Markov Decision Processes}\label{sec:MDP} % NOTE: THESE ARE ALL REFERENCES TO THE BOOK
-Many of the concepts introduced in \ref{sec:RL} are components of sequential decision making. Finite Markov Decision Processes (MDPs) are a formalization thereof. Environments which can be formulated as MDPs are what Reinforcement Learning is formally trying to solve. They are finite because the sets $\mathscr{S}, \mathscr{A}, \mathscr{R}$ of all states, actions, and rewards are all finite. In an MDP the agent and environment continually interact with each other. 
+Many of the concepts introduced in \ref{sec:RL} are components of sequential decision making. Finite Markov Decision Processes (MDPs) are a formalization thereof. Environments which can be formulated as MDPs are what Reinforcement Learning is formally trying to solve. They are finite because the sets $\mathset{S}, \mathset{A}, \mathset{R}$ of all states, actions, and rewards are all finite. In an MDP the agent and environment continually interact with each other. 
 
 \begin{figure}[h!]
     \centering
@@ -32,7 +33,38 @@ Many of the concepts introduced in \ref{sec:RL} are components of sequential dec
     \label{fig:agent_env_inter}
 \end{figure}
 
-This interaction can be broken up in to sequential time steps.  
+This interaction can be broken up in to time-steps. At each time-step the agent is given the current state of the environment and receives a reward based upon the previous state and action taken. thus at any given time-step $t$ there is a state, action and reward $S_t, A_t, R_t$ , where each of these is an element of their respective finite sets presented above. \citepg{48}. Since the agent environment interaction is sequential, a sequence, or in Reinforcement Learning a \textit{trajectory} $\tau$, arises, where each subsequent triple is of time-step $t+1$. \citepg{48}
+
+\begin{equation}\label{MDP:trajectory}
+    \Tau = S_0, A_0, R_1, S_1, A_1, R_2 \dots
+\end{equation}
+\centerline{\small\textit{from \citepg{48}}}
+
+In an \ita{episodic} environment, an environment that ends at some terminal time-step $T$, any given trajectory has a respective terminal state $S_T$ and reward $R_T$. The notion of a terminal action does not make sense since the environment terminates at $T$, and the action which proceeds $S_T$ is $A_{T-1}$, such an environment is \ita{episodic}. Another component in the agent environment interaction are the \ita{dynamics} of the environment. An environment does not have to be \ita{deterministic} in an MPD. Concretely a given action can have multiple possible subsequent states and rewards, however the distribution of these must be well defined. This gives rise to the following set of equations:
+
+\begin{equation}\label{MDP:prob_dist:0}
+    p(s', r |s, a) \doteq Pr\{ S_t=s', R_t=r | S_{t-1}=s, A_{t-1}=a\}
+\end{equation}
+where 
+\begin{equation}\label{MDP:prob_dist:1}
+    \sum{s \in \mathset{S}}^{}\sum{r \in \mathset{R}}^{}  p(s', r |s, a) = 1 \mathrm{\ for\ all\ } s \in \mathset{S}, a \in \mathset{A}(s) 
+\end{equation}
+by extension the following can be deducted
+\begin{equation}\label{MDP:prob_dist:2}
+    r(s, a) \doteq \mathbb{E}[R]
+\end{equation}
+
+\subsection{Defining the Agents goals in an MDP}\label{subsec:goals}
+
+We now know how an MDP operates and how the agent-environment interaction loop works on a formal level. The agent selects actions based on state information and and receives rewards as feedback for its previous action. It intuitively follows that the goal of the agent is to maximize the reward received. However based on the current model the agent changes its policy purely based on the reward it immediately receives after a give action, in other words it is only aware of the correlation between an action and its immediate consequences. Needless to say not being able to plan for long term reward presents a problem. The \ita{Return} $G$, which is defined as follows, presents one possible solution for this issue.
+
+\begin{equation}\label{MDP:return}
+    G_t \doteq R_t + R_{t+1} + R_{t+2} \dots + R_T
+\end{equation}
+\centerline{\small{\ita{\citepg{FINDPAGE}}}}
+
+We can see that the Return describes the sum of all rewards up until the end of the episode. This however presents some issue if the environment is continuous, since there is no final time-step. To remedy this \ita{discounting} is introduced. \citepg{FINDPAGE}
+
 
 \subsection*{Computational Example}\label{subsec:grid_world}
 

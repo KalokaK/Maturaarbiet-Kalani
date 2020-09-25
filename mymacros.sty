@@ -1,0 +1,13 @@
+\ProvidesPackage{mymacros}[2020/09/21 v1.0 My own macros]
+\usepackage{xargs}
+\newcommand{\Tau}{\mathcal{T}}
+\newcommand{\mathset}[1]{\mathscr{#1}}
+\newcommand{\citepg}[2][sutton_reinforcement_2018]{\cite[p. {#2}]{#1}}
+\newcommand{\ita}[1]{\textit{#1}}
+\newcommandx{\image}[4][2= , 3= , 4=1]{
+    \begin{minipage}{\linewidth}% to keep image and caption on one page
+    \makebox[\linewidth]{%        to center the image
+      \includegraphics[keepaspectratio=true,width=#4 \linewidth]{#1}}
+    \captionof{figure}{#2}\label{#3}%      only if needed  
+    \end{minipage}
+}
