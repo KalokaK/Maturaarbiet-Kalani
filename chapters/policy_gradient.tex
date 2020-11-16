@@ -1,0 +1,11 @@
+% !TEX root = ../maturaarbeit.tex
+\newpage
+\chapter{Solutions with Policy Gradient Methods: WORK IN PROGRESS}\label{chap:policy_gradient}
+\noindent
+In this section I shall briefly present Policy Gradient methods, their advantages and aim to give an intuitive understanding of their operation to the reader.
+Policy Gradients (PG) are the basis of the algorithm used in this thesis to solve the example environment. They are essential to modern reinforcement learning, more on which can be found in this overview of the current state of Reinforcement Learning \cite{grigsby_overview_2018}. Countless algorithms build on them, one of which I will present and use here.
+\\ In essence policy gradient methods differentiate some measure of performance with respect to parameters of the policy. Policy parameters are commonly denoted as $\theta$, this is used in \cite{sutton_reinforcement_2018}. Here it is important to keep in mind that $\pi$ is just a function which maps from a state, to a probability distribution over the action space. as such the porbabilty of action $a$ becomes $\pi(a|s, \theta)$ as showcased in \ref{subsec:policies}.
+
+\subsection{Why choose of Policy Gradient Methods?}\label{subsec:advantages_of_policy_gradient}
+\noindent
+Regrettably the field of Reinforcement Learning is far too broad to cover all of its approaches here, and thus laying out the advantages of Policy Gradient methods over other approaches is inevitably limited by the limited context available. 
