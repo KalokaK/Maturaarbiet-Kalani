@@ -1,0 +1,37 @@
+% !TEX root = ../maturaarbeit.tex
+\newpage
+\section{Function approximation using Artificial Neural Networks: WORK IN PROGRESS}\label{sec:neural_networks}
+All throughout this chapter I have talked about the policy being a function which maps environment states to a probability distribution over the set of actions. It follows that an optimal policy $\pi*(a|s)$ is a function which maps the respective best possible distribution to each state. In reinforcement learning we do not know that optimal policy, if we did there wouldn't be any problem to solve. \textit{Artificial Neural Networks} (ANN) offer a method of approximating a general target function $f*(x)$ \cite[p. 164]{Goodfellow-et-al-2016}. In policy gradient based reinforcement learning they are commonly used to directly approximate the optimal policy. In this section I will cover how a simple type of ANN, a \textit{multilayer perceptron} (MLP), functions.
+
+\subsection{Components of a Multilayer Perceptron}\label{subsec:nn:components_mlp}
+To explain MLPs I will first cover what a perceptron is, and then explain how multiple perceptrons can be combined to form an MLP.
+
+\subsubsection{Perceptron}\label{subsubsec:nn:comp:perceptron}
+As their name implies, artificial neural networks are made up of neurons, or rather artificial ones. One type of such is neuron is the perceptron \cite[chap. 1]{nielsen_neural_2015}. A perceptron, takes several weighted inputs and produces a single output. Unlike in other types of artificial neurons, in a perceptron that output is binary. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{figures/placeholder.png}
+    \caption{Caption}
+    \label{fig:my_label}
+\end{figure}
+\noindent
+This figure illustrates how in a perceptron the weighted inputs are summed, this sum is denoted as $z$ here, and then passed to a step function, here $a(z)$, which produces the perceptions final binary output. Notice how $z$ is essentially the dot product between an input vector $\mathbf{x} = \{x_0, x_1, \dots, x_j\}$ and a weight vector $\mathbf{w} = \{ w_0, w_1, \dots, w_j \}$. Using this the perceptrons output becomes $a(\mathbf{x} \cdot \mathbf{w})$. Conceptually a perceptron can make a yes / no decision based upon some arbitrary number of inputs. 
+
+\subsubsection{Layers}\label{subsubsec:nn:comp:layers}
+A single perceptron is not of much use when approximating some general function, let alone a policy. To expand upon their capability perceptrons can be combined in to layers. A layer of perceptrons still takes an input vector $\mathbf{x}$, which all perceptrons in the layer are connected to. Unlike a single perceptron however, a layers output is itself a vector, namely the vector of the outputs of all it's perceptrons.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{figures/placeholder.png}
+    \caption{Caption}
+    \label{fig:my_label_1}
+\end{figure}
+\noindent
+To compute the output of this vector for a given input, we would need to compute $z_i$ of each perceptron $i$, and then pass all $z$ to the step function $a(z)$. However, since $z_i$ is just the dot-product $\mathbf{x} \cdot \mathbf{w}_i$, we could also use a weight matrix $\mathbf{W}_{i, j} = \left[ \mathbf{w}_0, \mathbf{w}_1, \dots, \mathbf{w}_i \right]$ applied to $\mathbf{x}$ to get the vector $\mathbf{z} = \left\{ z_0, z_1, \dots, z_i \right\}$. To this $a(z)$ can then be applied element wise, to get the vector of outputs of the layer. I will use $a(\mathbf{z}_i)$ as shorthand for this element wise application. The output of a layer $f$ is:
+
+\begin{equation}
+    f(x, \theta) = a \left( \mathbf{W} \cdot \mathbf{x} \right)
+\end{equation}
+\noindent
+Layers can then be composited to form an artificial neural network, specifically a multilayer perceptron. In \cite[p. 164]{Goodfellow-et-al-2016} the notation used for this is $f(x) = f^{(n)}(f^{(\dots)}(f^{(2)}(f^{(1)}(x))))$. Here $f$ is the entire MLP, and $f^{(n)}$ are all its layers. Of course $f(x)$ is not only dependant on $x$ but on all the weights in the layers weight matrices. As per the notation used in \cite{Goodfellow-et-al-2016} I will use $\theta$ to encompass all these function parameters, the network becomes $f(x, \theta)$. 

@@ -1,0 +1,21 @@
+% !TEX root = ../maturaarbeit.tex
+
+\chapter{Code}\label{appendix:code}
+\section{Move Agent Method}\label{appendix:code:move_agent}
+\begin{lstlisting}[basicstyle=\footnotesize]
+public void MoveAgent(ActionSegment<float> act) {
+    m_KickPower = 0f;
+
+    float longitudinalAxis = Convert.ToSingle(System.Math.Tanh(act[0])) * m_ForwardSpeed;
+    float lateralAxis = Convert.ToSingle(System.Math.Tanh(act[1])) * m_LateralSpeed;
+    float rotationalAxis = Convert.ToSingle(System.Math.Tanh(act[2]));
+
+    Transform transformTMP;
+    (transformTMP = transform).Rotate(transform.up, rotationalAxis * 6.5f);
+    agentRb.AddForce(
+        (transformTMP.forward * longitudinalAxis +
+         transformTMP.right * lateralAxis)
+        * m_SoccerSettings.agentRunSpeed,
+        ForceMode.VelocityChange);
+}
+\end{lstlisting}

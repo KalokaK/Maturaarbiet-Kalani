@@ -1,0 +1,28 @@
+% !TEX root = ../maturaarbeit.tex
+
+\chapter{Proofs}\label{appendix:proofs}
+\section{Policy Gradient Theorem}\label{appendix:sec:pg}
+\begin{tcolorbox}[colback=white!5!white,colframe=white!50!black,
+  colbacktitle=white!75!black,title=Proof of the Policy Gradient Theorem (episodic case)]
+  For the following proof consider $q_\pi(s,a)$ to be defined as $\mathbb{E}_\pi[G_t|S_t=s,A_t=a]$ \citepg{58}, and $\pi$ to be a function of $\theta$.
+  \tcblower
+  \begin{align*}
+  \nabla v_\pi(s) &= \nabla \left[\sum_{a}\pi(a|s)q_\pi(s,a)\right] \MoveEqLeft[1]\\
+  &= \sum_{a}\left[\nabla \pi(a|s)q_\pi(s,a)+\pi(a|s)\nabla q_\pi(s,a)\right] \\
+  &= \sum \left[\nabla \pi(a|s)q_\pi(s,a) + \pi(a|s)\nabla \sum_{s', r} p(s',r|s,a) (r + v_\pi(s'))\right] \\
+  &= \sum \left[\nabla \pi(a|s)q_\pi(s,a) + \pi(a|s) \sum_{s'} p(s'|s,a) v_\pi(s')\right] \\
+  &= \sum_{a}\left[\nabla \pi(a|s)q_\pi(a,s) + \pi(a|s)\sum_{s'}p(s'|s,a) \right. \\
+  &\qquad \left. \sum_{a'}[\nabla \pi(a'|s')q_\pi(a',s') + \pi(a'|s')\sum_{s''}p(s''|s',a')\nabla v_\pi(s'')]\right] \\
+  &= \sum_{x \in \mathset{S}}\sum_{k=0}^{\infty}\operatorname{Pr}(s \rightarrow x, k, \pi)\sum_a \nabla \pi(a|x)q_\pi(x,a), \\
+  \intertext{
+  after repeated unrolling, where $\operatorname{Pr}(s \rightarrow x, k, \pi)$ is the probability of transitioning from state $s$ to state $x$ in $k$ steps under the policy $\pi$. It is then immediate that 
+  } 
+  \nabla J(\theta) &= \nabla v_\pi(s_0) \\
+  &= \sum_{s}\left(\sum_{k=0}^{\infty} \operatorname{Pr}( s_0 \rightarrow s, k, \pi)\right)\sum_{a}\nabla \pi(a|s)q_\pi(s,a) \\
+  &= \sum_s \eta(s) \sum_{a}\nabla \pi(a|s)q_\pi(s,a) \tag*{\citepg{199}} \\
+  &= \sum_{s'} \eta(s') \sum_s \frac{\eta(s)}{\sum_{s'}\eta(s')} \sum_{a}\nabla \pi(a|s)q_\pi(s,a) \\
+  &= \sum_{s'} \eta(s') \sum_s \mu(s) \sum_{a}\nabla \pi(a|s)q_\pi(s,a) \tag*{\citepg{199}}\\
+  &\propto \sum_s \mu(s) \sum_{a}\nabla \pi(a|s)q_\pi(s,a) \tag*{\scshape q.\:e.\:d.}
+  \end{align*}
+ 
+\end{tcolorbox}

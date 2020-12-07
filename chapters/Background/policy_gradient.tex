@@ -1,0 +1,32 @@
+% !TEX root = ../maturaarbeit.tex
+\newpage
+\section{Solutions with Policy Gradient Methods: WORK IN PROGRESS}\label{sec:policy_gradient}
+\noindent
+In this section I shall briefly present Policy Gradient methods, their advantages and aim to give an intuitive understanding of their operation to the reader. Policy Gradients (PG) are the basis of the algorithm used in this thesis to solve the soccer problem. They are one of the main methods used in modern Reinforcement Learning. Countless algorithms build on them, one of which I will present and use here. The reason I chose policy gradient methods for my work their ability to elegantly handle continuous action spaces as well as their high relevance in state of the art Reinforcement Learning. However, there are other widely used and highly viable methods as well \cite{arulkumaran_brief_2017}. Policy Gradient Methods Rely on the concept of the policy as a function which produces a probability distribution over the action space, and the concept of gradient ascent, which i discussed in the previous section \ref{gd:gradient_ascent}. At the end of that section I mentioned how Gradient Descent / Ascent could be used in Learning, By defining a Performance Measure dependant on the policy's parameters, and then differentiating that with respect to those parameters, thereby finding out in what direction to change them in order to improve the policy. Here I will present just such a measure, denoted as $J(\theta)$. 
+
+\subsection{The Policy Gradient Theorem}\label{subsec:pg:theorem}
+The policy gradient theorem provides the derivative of $J(\theta)$ w.rt. $\theta$. Conceptually $J(\theta)$ is the true value of of $\pi$ with the parameters $\theta$ starting in a state $s_0$. It can be thought of as a measure of how well an agent following the policy will perform starting at $s_0$. In \cite{sutton_reinforcement_2018} $J(\theta)$ it is defined as follows:
+
+\begin{equation}\label{pg:performance_measure}
+    J(\theta) \doteq \mathbb{E}_{\pi_\theta}[G_t|S_t=s_0]
+\end{equation}
+
+\noindent
+In \citepg{324} $j(\theta)$ is technically defined to be $v_{\pi_\theta}(s_0)$ \citepg{58}, which is defined to be the above earlier in the book. Since I do not make use of $v_{\pi_\theta}(s_0)$, I am going to equate the two here, the differences are conceptual. The proof as taken from \citepg{325} can be found in appendix \ref{appendix:sec:pg}. It requires some additional concepts, the introduction of which extend past the scope of this thesis. But if you are interested, for a better understanding I suggest you read through the early chapters of \cite{sutton_reinforcement_2018}. This can then be simplified:
+\begin{align}
+    \nabla J(\theta) &\propto \sum_{s} \mu(s)\sum_a q_\pi(s,a) \nabla \pi(a|s,\theta) \nonumber \MoveEqLeft[1] \\ 
+    &= \mathbb{E}_\pi \left[\sum_a q_\pi(S_t,a) \nabla \pi(a|S_t,\theta)\right] \nonumber \\
+    &= \mathbb{E}_\pi \left[\sum_a \pi(a|S_t,\theta) q_\pi(S_t,a) \frac{\nabla \pi(a|S_t,\theta)}{\pi(a|S_t,\theta)}\right] \nonumber \\ 
+    &= \mathbb{E}_\pi \left[q_\pi(S_t,A_t) \frac{\nabla \pi(A_t|S_t,\theta)}{\pi(A_t|S_t,\theta)}\right] \nonumber \tag*{(replacing $a$ by the sample $A \sim \pi$)}\\
+    &= \mathbb{E}_\pi \left[G_t \frac{\nabla \pi(A_t|S_t,\theta)}{\pi(A_t|S_t,\theta)}\right] \tag*{(because $\mathbb{E}_\pi \left[ G_t|S_t, A_t \right] = q_\pi \left(S_t, A_t \right)$)}
+\end{align}
+
+\centerline{From \citepg{326, 327}}
+
+\noindent
+\\ \\ Consider what this actually means. This gradient tells us what direction to nudge $\theta$ in in order to maximize $J(\theta)$. The optimal direction to nudge $\theta$ in will be different for every sample interaction with the environment. The actual best direction is determined by the combined nudges from all samples. That \textit{is} the expectation of the gradient when sampled from interactions of an agent following $\pi$ , with the environment.
+\nolinebreak
+The next term, the gradient of the the probability, $\nabla \pi(A_t|S_t, \theta)$, of action $A_t$ being picked in state $S_t$, multiplied by $G_t$, thereby being proportional to it, can be though of as the direction in which to move $\theta$ in order for $a$ to be taken more often, scaled by the "goodness" of $A_t$. When using this gradient, action of high value are going to be made more probable to be taken than action of low value. This even holds true when the return is always positive or always negative, because the sum of the probability of all actions must be $1$. The probability of one action is invariably linked to the probability of all others, when all probabilities are increased, the highest ones will simply be those which were increased the most. This also leads to the last component of this gradient. The division by $\pi(A_t|S_t, \theta)$, the probability of the action itself. This makes sense because, quoting from \citepg{327}, \textit{"otherwise actions that are selected frequently are at an advantage (the updates will be more often in their direction) and might win out even if they do not yield the highest return." }
+
+\subsection{Policy Gradient Based Learning with REINFORCE}\label{subsec:pg:reinforce}
+This is the gradient vecotor of $J(\theta)$ with respect to $\theta$, and what I use during gradient descent. 
