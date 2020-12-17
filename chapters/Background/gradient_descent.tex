@@ -13,7 +13,7 @@ In essence gradient descent is an algorithm used to find local minima of differe
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=\linewidth]{figures/grid_world_discount_factors.png}
+    \includegraphics[width=\linewidth]{figures/grad_desc.png}
     \caption{Gradient Descent on $f(\theta) = \theta^2$}
     \label{fig:UNO}
 \end{figure}
@@ -25,27 +25,33 @@ In essence gradient descent is an algorithm used to find local minima of differe
     \theta \leftarrow \theta - \alpha \cdot \nabla_\theta f(\theta)
 \end{equation}
 
-\subsubsection{Gradient Descent on functions which take unknown variables}\label{gd:random_var}
-Gradient Descent can also be used to minimize function parameters when unknown variables are in the mix, and the goal is to find parameters which lead to minimal function values for most parameters. Say $f(x, \theta)$ is the function we are performing gradient descent on, $\theta$ is a vector of parameters we are trying to optimize, and $x$ is sampled from a distribution. We can perform gradient descent steps which are close to optimal, by calculating the gradients $\nabla_\theta f(x, \theta)$ for $n$ number of samples of $x$, averaging them, and performing a gradient descent step on that average. The more samples of $x$ we have the more accurate the direction and magnitude of the step are going to be going to be.
-
-\subsubsection*{Gradient Ascent}\label{gd:gradient_ascent}
+\subsubsection{Gradient Ascent}\label{gd:gradient_ascent}
 As the name implies gradient ascent is the exact opposite of gradient descent. Instead of trying to find the local minimum of a function, when performing gradient ascent we are trying to find the local maximum of a function. Gradient Ascent is identical to performing Gradient Descent on the negative derivatives. 
 
 \subsection{How is Gradient Descent relevant to Reinforcement Learning?}\label{gd:relevance}
-In the previous section we have established that policies are functions which take actions and produce probability distributions over a set of actions. They may also be parameterized. One very common way of optimizing policies is to define a function $J(\theta)$, which measures agent performance \citepg{312}. This function is dependant on, and differentiable with respect to, the policy parameters $\theta$. Gradient Descent or Ascent (which one we use is dependant on if the performance measuring function treats lower or larger values as better) can then be used to optimize $\theta$. I will present one such function, in section \ref{sec:policy_gradient}. Gathering a set of agent-environment interactions, using the rewards received in them in a performance measuring function which depends on the policy parameters, and then using a variation on Gradient Descent to optimize those parameters, is the method i use to train an agent in this thesis. This can be represented in an abstract algorithmic fashion:
+In the previous section we have established that policies are functions which take actions and produce probability distributions over a set of actions. They may also be parameterized. One very common way of optimizing policies is to define a function $J(\theta)$, which measures agent performance \citepg{312}. This function is dependant on, and differentiable with respect to, the policy parameters $\theta$. Gradient Descent or Ascent (which one we use is dependant on if the performance measuring function treats lower or larger values as better) can then be used to optimize $\theta$. I will present one such function, in section \ref{sec:policy_gradient}. Gathering a set of agent-environment interactions, using the rewards received in them in a performance measuring function which depends on the policy parameters, and then using a variation on Gradient Descent to optimize those parameters, is the method i use to train an agent in this thesis. 
+
+\subsection{Improvements on Gradient Descent}\label{subsec:gd:adam}
+To achieve satisfactory performance the baseline gradient descent algorithm presented above did not suffice. Instead I opted for a, all throughout machine learning widely used optimization algorithm, called Adam \cite[pg 305]{Goodfellow-et-al-2016}. It combines a number of improvements on gradient descent, they are extensively covered in the pages preceding Adam in the book cited above. Basic gradient descent has a number of issues. The main way in which Adam improves on gradient descent, is by introducing momentum. In essence, a gradient using momentum can be thought of as the gradient averaged across a number of previous descent steps. This is useful since it allows for optimization past a local minimum, where regular gradient descent would get stuck. A common and useful analogy for this is a ball rolling down a hill. In regular gradient descent this ball would get stuck at even the smallest of local minima. However if that ball has momentum it might simply roll over such features of the parameter space. It also allows for carrying velocity through long flat sections where the gradients are relatively small, and would lead to unfeasibly long training times in Reinforcement Learning. The Adam optimization algorithm based on \cite[p. 306]{Goodfellow-et-al-2016}, and the original paper \cite{kingma2017adam} looks as follows:
 
 \begin{algorithm}[H]
+\DontPrintSemicolon
 \SetAlgoLined
- initialization\;
- \Repeat{agent performance suffices}{
-  \For{$t \in 0, \dots, n$}{
-   Get state $S_t$\;
-   Take action $A_t$ sampled from $\pi(a|s,\theta)$\;
-   Receive reward $R_t$\;
-  }
-  Compute gradients of performance function based on rewards w.r.t. $\theta$\;
-  update $\theta$ with Gradient Descent;
-  
+ \KwRequire{$\alpha$ Step size}
+ \KwRequire{$\rho_1, \rho_2 \in \left[0, 1\right)$ Exponential decay rates for momentum estimates}
+ \KwRequire{$\delta$ Small constant used for numerical stability}
+ \KwRequire{$\theta_0$ Initial parameter vector}
+ $m_0 \leftarrow 0$ (Initialize first moment vector)\;
+ $v_0 \leftarrow 0$ (Initialize second moment vector)\;
+ $t \leftarrow 0$ (Initialize timestep)\;
+ \Repeat{$\theta_t$ converges}{
+  $t \leftarrow t+1$\;
+  $g_t \leftarrow \nabla_\theta f_t(\theta_{t-1})$ (Get gradients w.r.t. objective)\;
+  $m_t \leftarrow \rho_1 * m_{t-1} + \left(1-\rho_1\right)\cdot g_t$ (Update first moment estimate)\;
+  $v_t\leftarrow \rho_2 * m_{t-1} + \left(1-\rho_2\right)\cdot g_t \odot g_t$ (Update second moment estimate)\;
+  $\hat{m}_t \leftarrow {m_t}/{\left(1-\rho_1^t\right)}$ (correct first moment for initial bias)\;
+  $\hat{v}_t \leftarrow {v_t}/{\left(1-\rho_2^t\right)}$ (correct first moment for initial bias)\;
+  $\theta_t \leftarrow \theta_{t-1} - \alpha \cdot {\hat{m}_t}/{\left(\sqrt{\hat{v}_t} + \delta \right)}$ (Update parameters)\;
  }
- \caption{Reinforcement Learning With Gradient Descent}
+ \caption{The Adam algorithm}
 \end{algorithm}

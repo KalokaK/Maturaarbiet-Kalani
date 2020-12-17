@@ -19,3 +19,107 @@ public void MoveAgent(ActionSegment<float> act) {
         ForceMode.VelocityChange);
 }
 \end{lstlisting}
+
+\section{Create Policy Network}\label{appendix:code:network}
+\begin{lstlisting}[basicstyle=\footnotesize]
+def get_size_decaying_policy_net(
+        observation_shape,
+        action_shape,
+        kernel_initializer: K.initializers.Initializer = K.initializers.HeNormal(seed=0),
+        final_continuous_initializer: K.initializers.Initializer = K.initializers.RandomNormal(0, 0.05),
+        activation=K.activations.relu,
+        bias_mu: float = 0.0,
+        bias_sig: float = 0.0,
+        sig_single_var: bool = True) -> K.Model:
+
+    node_count = max(int(2 ** np.floor(np.log2(np.sum(observation_shape)))), 64)
+    min_node_count = max(int(2 ** np.ceil(np.log2(np.sum(action_shape)))), 32)
+    node_count = max(64, min_node_count * 4) if node_count <= min_node_count else node_count
+
+    inputs = K.Input(int(np.sum(observation_shape)))
+    dense_layers = [K.layers.Dense(node_count, activation=activation, kernel_initializer=kernel_initializer, name=f'dense_{node_count}')(inputs)]
+    node_count /= 2
+    layer = 0
+    
+    while node_count >= min_node_count:
+        dense_layers.append(K.layers.Dense(node_count, activation=activation, kernel_initializer=kernel_initializer, name=f'mu_dense_{node_count}')(dense_layers[layer]))
+        node_count /= 2
+        layer += 1
+    mu_out = K.layers.Dense(action_shape, name='mu_out', kernel_initializer=final_continuous_initializer, bias_initializer=K.initializers.constant(bias_mu))(dense_layers[-1])
+    
+    sig_pre = IndependentTrainableVarLayer('sigpre', K.initializers.constant(bias_sig), action_shape)(inputs)  # it does not matter what this is called on
+    sig_out = tf.exp(sig_pre, name='sig_out')  # sigmas in log space so no negative values
+
+    return K.Model(inputs=inputs, outputs=[mu_out, sig_out])
+
+\end{lstlisting}
+
+\section{Compute Returns}\label{appendix:code:returns}
+\begin{lstlisting}[basicstyle=\footnotesize]
+@staticmethod
+def get_fully_discounted_returns(rewards: tf.Tensor, gamma: float):
+    horizon = rewards.shape[0]
+    gamma = tf.ones([horizon, horizon], tf.float32) * gamma
+    exponent = tf.range(horizon, dtype=tf.float32) - tf.expand_dims(tf.range(horizon, dtype=tf.float32), 1)
+    mask = tf.pow(gamma, exponent)
+    mask = tf.linalg.band_part(mask, 0, -1)  
+    returns = rewards * mask
+    returns = tf.reduce_sum(returns, axis=1, keepdims=True)
+    return returns
+\end{lstlisting}
+
+\section{Trajectory Class}\label{appendix:code:trajectory}
+\begin{lstlisting}[basicstyle=\footnotesize]
+class Trajectory:
+    def __init__(self, agent_id, max_len=1000):
+        self.max_len = max_len
+        self.id = agent_id
+        self.states = deque()
+        self.actions = deque()
+        self.rewards = deque()
+        self._out_transitions_states = []
+        self._out_transitions_actions = []
+        self._out_transitions_returns = []
+        self._out_transitions = []
+        self._running_idx = 0
+
+    @property
+    def full(self):
+        return self._running_idx >= self.max_len
+
+    def push(self, state: ndarray, action: ndarray, prev_reward: float): 
+        self.states.append(state)
+        self.actions.append(action)
+        self.rewards.append(prev_reward)
+
+    def finalize(self, final_reward: float, gamma: float):
+        diff = self.max_len - self._running_idx
+        len_idx = len(self.states) if diff >= len(self.states) else diff
+        if self.full:
+            raise Exception("trajectory already full, please handle first!!!")
+        self.rewards.append(final_reward)
+        self._out_transitions_states.append(tf.concat(self.states, 0)[:len_idx])
+        self._out_transitions_actions.append(tf.concat(self.actions, 0)[:len_idx])
+        self._out_transitions_returns.append(
+            self.get_fully_discounted_returns(
+                (tf.convert_to_tensor(self.rewards)[1:]), gamma=gamma)[:len_idx])
+        self._running_idx += len_idx
+        self.flush()
+
+    def pop_transitions(self):
+        return (tf.concat(self._out_transitions_states, int(0)),
+                tf.concat(self._out_transitions_actions, int(0)),
+                tf.concat(self._out_transitions_returns, int(0)))
+
+    def flush(self): 
+        self.states.clear()
+        self.actions.clear()
+        self.rewards.clear()
+
+    def purge(self):
+        self.flush()
+        self._out_transitions_states.clear()
+        self._out_transitions_actions.clear()
+        self._out_transitions_returns.clear()
+        self._running_idx = 0
+\end{lstlisting}

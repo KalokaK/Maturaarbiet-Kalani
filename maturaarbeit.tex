@@ -65,6 +65,7 @@
 
 % Algorithms
 \usepackage[ruled,vlined]{algorithm2e}
+\SetKwInput{KwRequire}{Require}
 
 % code
 \usepackage{xcolor}
@@ -76,14 +77,13 @@
 \definecolor{codepurple}{rgb}{0.5,0,1.0}
 
 \usepackage{listings}
-\lstset{language=[Sharp]C,
+\lstset{language=Python,
 showspaces=false,
 showtabs=false,
 breaklines=true,
 showstringspaces=false,
 breakatwhitespace=true,
 escapeinside={(*@}{@*)},
-commentstyle=\color{greencomments},
 keywordstyle=\color{bluekeywords}\bfseries,
 stringstyle=\color{redstrings},
 basicstyle=\ttfamily
