@@ -123,3 +123,91 @@ class Trajectory:
         self._out_transitions_returns.clear()
         self._running_idx = 0
 \end{lstlisting}
+
+\section{Manager Class}\label{appendix:code:env_manager}
+\begin{lstlisting}[basicstyle=\footnotesize]
+EnvId = int  
+
+
+class Manager:
+    def __init__(self, env_count: int, env_path: str, render: bool = False):
+        self.env_count = env_count
+        offset = np.random.randint(0, 1000)
+        self.envs: Dict[EnvId, UnityEnvironment] = {
+            env_id: UnityEnvironment(
+                file_name=env_path,
+                worker_id=env_id + offset,
+                seed=int(np.random.randint(0, 2_147_483_648)),
+                side_channels=[],
+                no_graphics=not render
+                # additional_args=["-batchmode"] if render else []
+            ) for env_id in range(env_count)
+        }
+        self.offset = 0
+        for env_id, env in self.envs.items():
+            env.reset()
+            self.offset += sum(len(env.get_steps(name)[0]) for name in env.behavior_specs.keys())
+
+        self.action_queue = JoinableQueue(maxsize=self.env_count)
+        self.step_queue = JoinableQueue(maxsize=self.env_count)
+        self.worker_pool = Pool(initializer=self._worker)
+        self.reset_lock = Lock()
+        self.current: EnvId = 0
+        self.env_id_dupe_checker_debug = {env_id: 0 for env_id in self.envs.keys()}
+
+    @property
+    def behaviour_specs(self):
+        return self.envs[0].behavior_specs.items()
+
+    def agent_ids(self, behaviour_name: str):
+        self.explicit_reset()
+        ids = []
+        for env_id, env in self.envs.items():
+            decision_steps, _ = env.get_steps(behaviour_name)
+            decision_steps.agent_id += self.offset * env_id
+            ids.extend(decision_steps.keys())
+        return ids
+
+    def _worker(self):
+        while True:
+            # Get a "work item" out of the queue.
+            env_id = self.step_queue.get()
+            self.env_id_dupe_checker_debug[env_id] -= 1
+            self.envs[env_id].step()
+            self.action_queue.put(env_id)
+            self.step_queue.task_done()
+
+    def acquire(self):
+        self.current = self.action_queue.get()
+        self.env_id_dupe_checker_debug[self.current] += 1
+        if self.env_id_dupe_checker_debug[self.current] != 1: raise Exception('bad concurrency')
+        return self.current
+
+    def release(self):
+        self.action_queue.task_done()
+        self.step_queue.put(self.current)
+
+    def soft_reset(self):
+        self.step_queue.join()
+        with self.step_queue.mutex:
+            self.step_queue.queue.clear()
+        with self.action_queue.mutex:
+            self.action_queue.queue.clear()
+        for env_id, env in self.envs.items():
+            self.action_queue.put(env_id)
+
+    def explicit_reset(self):
+        self.soft_reset()
+        for env in self.envs.values():
+            env.reset()
+
+    def get_steps(self, behaviour_name: str) -> Tuple[DecisionSteps, TerminalSteps]:
+        decision_steps, terminal_steps = self.envs[self.current].get_steps(behaviour_name)
+        decision_steps.agent_id += self.offset * self.current
+        terminal_steps.agent_id += self.offset * self.current
+        return decision_steps, terminal_steps
+
+    def set_actions(self, behaviour_name: str, actions: np.ndarray):
+        self.envs[self.current].set_actions(behaviour_name, actions)
+
+\end{lstlisting}

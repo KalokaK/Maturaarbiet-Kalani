@@ -1,6 +1,210 @@
 % !TEX root = ../maturaarbeit.tex
 \chapter{Training the Agent}\label{chap:training}
+In this chapter I will cover the results of Training agents in the "Soccer" environment and it's variations. Further I will discuss some of the aspects of training an agent in general, presented on the example of my specific environment, therein providing an answer for my original research question.
+\nolinebreak 
+% How can a DRL algorithm be trained to choose optimal actions in an environment and how can its performance be influenced and improved?
+% Wie Lässt sich ein DRL Algorithmus trainieren optimale Aktionen in einer Umgebung zu wählen und wodurch lässt sich seine Leistung beeinflussen und verbessern?
 \section{Baseline Results}\label{sec:tr:baseline_results}
-\section{Lower Iteration Times through Parallelization}\label{sec:tr:parallel}
-\section{Parameter Tweaking}\label{sec:tr:param_tweaking}
+Here I will quickly cover the results of the baseline training. Due to computational constraints I limited training to 100 million samples. Using the baseline parameters, this is the graph of the average returns received with respect to samples trained on:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{figures/placeholder.png}
+    \caption{Average returns over samples}
+    \label{fig:base_returns}
+\end{figure}
+% initally random stuff
+\noindent
+
+% improved 
+% 1-2 strategies
+\section{Optimization in Code}\label{sec:tr:optimization}
+In the "Soccer" environment the operation time of \code{UnityEnvironment.step()} is relatively high, leading to roughly 90\% of training time being spent waiting for it to return. Because f this higher degrees of parallelization  are needed. By default, in the baseline environment 32 agents are already trained in parallel. However increasing this number only seemed to increase execution time further. The suggestion of increasing simulation speed proposed in \cite{noauthor_unity-technologiesml-agents_2020} seemed to cause instability. Hence, I decided to run multiple instances of \code{UnityEnvironment} in parallel. For this I created the handler class \code{Manager}. Its full code can be found in \ref{appendix:code:env_manager}. The training loop does not change much using it, \code{UnityEnvironment}'s \code{get_steps} and \code{set_actions} are ported over, the most major change is that \code{Manager.acquire()} must be called at the beginning of each step, and \code{Manager.release()} at its end, as opposed to \code{UnityEnvironment.step()}. This class functions by using two queues, one for the environment instances which need to be acted upon, and one for the ones on which \code{.step()} needs to be called. The stepping method is handled by separate threads launched with Pythons wrapper for its threading module, \code{multiprocessing.dummy}. While environment in the main training loop, environment stepping is handled in the background. 
+% \section{Lower Iteration Times through Parallelization}\label{sec:tr:parallel}
+\section{Optimizations in Algorithm}\label{sec:tr:param_tweaking}
+The gains in performance to be made through algorithmic and parameter optimizations are like most significant. Here I present some changes to rewards given by the environment, and present optimization through parameter tweaking.
+
+\subsection{Tweaking Parameters}\label{subsec:tr:opt_alg:parameters}
+When tweaking parameters I stopped training at 20 million samples due to computational cost. Then I let the agents play 2560 games against every other parameter. The elo can then be computed through iteration where the actual score of $A$ playing against $B$ is $p_{win} + \frac{1}{2}p_{tie}$.
+
+\subsubsection{Discount Factor}\label{subsec:tr:opt_alg:params:discount}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ |l|p{1.25cm}|p{1.25cm}|p{1.25cm}|p{1.25cm}|p{1.25cm}|  }
+ \hline
+ \multicolumn{6}{|c|}{Discount Factor} \\
+ \hline
+ \hline
+  & 1.00 & 0.99 & 0.98 & 0.95 & 0.9 \\
+ \hline
+ elo & 951.2 & 1002.3 & 1007.3 & 1032.1 & 1006.9 \\
+ 
+ half life (steps) & undef. & $\approx$ 69.0 & $\approx$ 34.3 & $\approx$ 13.5 & $\approx$ 6.6 \\
+ 
+ avg. ep. length & 102.2 & 61.5 & 59.3 & 51.6 & 47.8 \\
+ \hline
+ %\multicolumn{6}{|c|}{Elo SE (run error not considered): $\pm$ 6.9}\\
+ %\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation data for different discount factors}
+\label{tab:elo_lr}
+\end{table}
+
+\noindent
+The half life here refers to the number of future steps at which a reward is weighed half in the return, together with the average episode length this serves as an aid in conceptualizing the effect of discount factor. The performance of 1.0 is poor. Between the rest, significant differences in performance can only be seen with 0.95.
+
+\subsubsection{Learning Rate}\label{subsubsec:tr:opt_alg:params:lr}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ |l|p{1.25cm}|p{1.25cm}|p{1.25cm}|  }
+ \hline
+ \multicolumn{4}{|c|}{Learning Rate} \\
+ \hline
+ \hline
+  & 0.001 & 0.0003 & 0.0001 \\
+ \hline
+ elo & 1006.6 & 1012.4 & 981.0 \\
+ \hline
+ %\multicolumn{4}{|c|}{Elo SE (run error not considered): $\pm$ 6.9}\\
+ %win percentage & 55.2 & 50.4 & 44.4 \\
+ %avg. returns (self play) & 0.527 & 0.483 & 0.336 \\
+ %\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation data of learning rate}
+\label{tab:elo_lr}
+\end{table}
+
+\noindent
+While both 0.001 and 0.0003 outperform 0.0001 considerably, between them there is no significant difference, their chances of winning against the other are 49.7\% $\pm$ 1.0 and 49.5\% $\pm$ 1.0, for 0.001 and 0.0003 respectively. The unaccounted for 0.8\% are ties. 
+
+
+\iffalse
+
+\\From this data it becomes apparent why the elo is necessary, as neither a simple win percentage, nor the results from self play reveal the actually most performant learning rate. The correctness of the elo rating is backed up by the table below, which shows that even though the agents trained with a learning rate of 0.001 won a higher percentage of games played, the agents trained with a learning rate of 0.0003 outperformed both of the other parameter permutations. All other parameters are left at their default value, unless specified. 
+\begin{table}[H]
+    \begin{center}
+    \begin{tabular}{|l|l|l||l|l||l|l|}
+    \hline
+        learning rate & \multicolumn{2}{c||}{0.001} & \multicolumn{2}{c||}{0.0003} & \multicolumn{2}{c|}{0.0001}\\ \hline
+        against & 0.0003 & 0.0001 & 0.001 & 0.0001 & 0.001 & 0.0003 \\ \hline \hline
+        wins & 390 & 388 & 424 & 486 & 312 & 410 \\ \hline
+        losses & 424 & 312 & 390 & 410 & 388 & 486 \\ \hline
+    \end{tabular}
+    \end{center}
+    \caption{Relative scores w.r.t. learning rate}
+    \label{tab:why_elo}
+\end{table}
+
+\fi
+
+\subsubsection{Batch Size and Count}\label{subsubsec:tr:opt_alg:params:batch}
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ |l|l|l|l|  }
+ \hline
+ \multicolumn{4}{|c|}{Batch Size} \\
+ \hline
+ \hline
+  & $16384 = 2^{14}$ & $4096 = 2^{12}$ & $1024 = 2^{10}$ \\
+ \hline
+ elo & 981.0 & 1024.3 & 994.6 \\
+ batch count & 32 & 128 & 512 \\
+ %win percentage & 48.3 & 52.6 & 48.9 \\
+ %avg. returns (self play) & 0.483 & 0.673 & 0.527 \\
+ \hline
+\end{tabular}
+\end{center}
+\caption{Evaluation data of batch size}
+\label{tab:elo_batch}
+\end{table}
+
+\noindent
+
+
+\subsubsection{Activation Function and Initialization Method}\label{subsubsec:tr:opt_alg:params:batch}
+ I tested the "Sigmoid" logistic function as an example of a bounded activation function, and "Swish" ($x/1+e^{\beta x}$, I use $\beta = 1$),  a fairly recent activation function, because according to the paper it was originally presented in \cite{ramachandran2017searching}, it provides a substantive improvement over "ReLU". Unlike "ReLU", its gradient is never zero, zero gradients effectively negate the effects of gradient descent. I tested "He Normal" initialization ($N(\mu = 0, \sigma = \sqrt{2/i})$ where $i$ is the number of neurons in previous layer), because according to it's proposal paper \cite{He_2015_ICCV}, it is especially suited to "ReLU". Because this connection between activation function and initialization method is claimed, I also made comparisons between all their combinations.
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ |l|p{1.25cm}|p{1.25cm}|p{1.25cm}||p{1.25cm}|p{1.25cm}|p{1.25cm}|  }
+ \hline
+ & \multicolumn{3}{c||}{Glorot Uniform} & \multicolumn{3}{c|}{He Normal}\\
+ \hline
+ \hline
+  & Swish & ReLU & Sigmoid & Swish & ReLU & Sigmoid \\
+ \hline
+ elo & 1010.3 & 1028.5 & 972.6 & 1016.9 & 1010.8 & 961.0 \\
+ \hline
+ %\multicolumn{7}{|c|}{Elo SE (run error not considered):$\pm$ 6.9}\\
+% win percentage & 57.7 & 58.0 & 42.0 & 52.1 & 51.5 & 38.9 \\
+% avg. returns (self play) & 0.439 & 0.483 & 0.407 & 0.468 & 0.550 & 0.394 \\
+ %\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation data of activation function and initialization method}
+\label{tab:elo_activation_init}
+\end{table}
+\noindent
+ReLU and Swish significantly outperform Sigmoid across the board. However when looking at relative win percentages it only outperforms Swish with he $50.9\% \pm 1.0$, i will be re-running their tests with 100 million samples. Sigmoid performance is very poor. Overall Glorot activation outperforms He Normal. This discrepancy between previous research and my implementation may have myriad reasons, I could imagine that the difference in network architecture and and task are the most notable. 
+
+
+
+
+
+\iffalse
+\subsection{Network Architecture}\label{subsec:tr:opt_alg:architecture}
+I also tested some variations on my network architectures for the mean. All are considerably simple than my decaying implementation. None of them performed particularly well, hence I will not go in to much detail. They all follow the following pattern:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.15\linewidth]{figures/placeholder.png}
+    \caption{Pattern for alternative network architectures}
+    \label{fig:network_pattern}
+\end{figure}
+\noindent
+All middle layers are the same size. In the following table they will be specified as "<layer count> by <units per layer>. The results are presented in the table below.
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ |l|p{1.6cm}|p{1.6cm}|p{1.6cm}|p{1.6cm}|p{1.6cm}|  }
+ \hline
+ & \multicolumn{5}{|c|}{Mean Network Architecture}\\
+ \hline
+ \hline
+  & baseline & 2 by 256 & 1 by 512 & 3 by 512  & 2 by 2048 \\
+ \hline
+ elo & 1102.6 & 924.2 & 963.5 & 1054.8 & 954.9  \\
+ parameter count & 129'603 & 87'043 & 174'083 & 436'739 & 696'323 \\
+ \hline
+\end{tabular}
+\end{center}
+\noindent
+As can be seen the baseline decaying network architecture clearly performed best. However, different architectures might function 
+\caption{Evaluation data of architectures used for the mean network}
+\label{tab:elo_network}
+\end{table}
+\noindent
+
+\fi
 \section{Variations on the Environment}\label{sec:tr:variations}
+\subsection{Changes to Rewards}\label{subsec:tr:env:rewards}
+%\subsection{Generality of Algorithm}\label{subsec:tr:env:generality}
+\section{Final Agent Performance}
+% different rewards
+% generality of algorithm
+
+
+\section{Significance of Data}
+The Standard Error in win percentages between parameters variations is fairly low, games between agents are technically multinomial distributions but because ties are so infrequent, (on average $\approx$ 0.5\% of outcomes), i aprroximate it as a Bernoulli trial, standard error then is $\sqrt{\frac{p_{win} \cdot (1 - p_{win})}{n}}$ which is $\approx$0.010, or 1.0\% for all parameters, which corresponds to a difference in elo between parameters of approximately 6.9 points. The more troublesome error is in the difference between between runs. I cannot control the random seed used for Unity, which makes 1 to 1 repeatability of runs impossible. Monte Carlo approximation of the error is prohibitively expensive for full runs.
+
+
+
+\section{Variations on the Environment}\label{sec:tr:variations}
+\subsection{Changes to Rewards}\label{subsec:tr:env:rewards}
+%\subsection{Generality of Algorithm}\label{subsec:tr:env:generality}
+\section{Final Agent Performance}
+Here I compare my baseline Agent, against the agent trained with optimized parameters, and against Unity's pre-trained Agent. The results against unity are not directly comparable 
+% different rewards
+% generality of algorithm
+

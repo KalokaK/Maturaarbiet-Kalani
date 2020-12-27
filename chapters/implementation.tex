@@ -39,10 +39,10 @@ I opted to use this toolkit because of my prior knowledge with the Unity game en
 Here I will lay out the workings of the environment I opted to use, explain the integration with with python, and go over some of the code crucial to its function. This section describes the baseline  modified "Soccer" environment. "Soccer" is the name used in the ML-Agents toolkit. I work with variations on it in \ref{sec:tr:variations}, they all depend on this baseline. The environment I use to train the agent is a simplified version of a game of soccer. 
 
 \subsection{Suitability for my Work}\label{subsec:ip:environment:suitabilty}
-At the beginning of this thesis I was faced with the decision whether I should use a preexisting environment or create my own. I opted to make use of an already existing one since this was more in line with my lead question, which asks how an agent is trained. I chose this specific environment because it presents a decent balance between complexity, likelyhood of successful training, intrigue and extensabilty. Due to its extensabilty i could also train and test agents on variations of it, thereby having a measure of how adaptable it is. Further after the modifications I made to the environment it now also offers continuous control to the agent, this presents an interesting challenge, relevant to real world task, where input is seldom binary.
+At the beginning of this thesis I was faced with the decision whether I should use a preexisting environment or create my own. I opted to make use of an already existing one since this was more in line with my lead question, which asks how an agent is trained. I chose this specific environment because it presents a decent balance between complexity, likelyhood of successful training, intrigue and extensibilty. High extensibilty lowers the barrier to training agents on variations of it, thereby having a measure of how adaptable my methodology it is. Further after the modifications I made to the environment it now also offers continuous control to the agent, this presents an interesting challenge, relevant to real world task, where input is seldom binary.
 
 \subsection{Specifics of Operation}\label{subsec:ip:environment:implementation}
-The baseline environment is in function mostly identical to the "Soccer" example environment provided by the Unity ML-Agents toolkit. Here I will go over it's sequence of operation, it's specification, and state all the changes I made to it in order to make it suit my work better. The game of soccer takes place on a bounded field and has four players, distributed across two teams. All Each Player is its own Agent, they all act on the same policy and all produce trajectories for it's training. Thereby the policy is trained in play against itself. 
+The baseline environment is in function mostly identical to the "Soccer" example environment provided by the Unity ML-Agents toolkit. Here I will go over it's sequence of operation, it's specification, and state all the changes I made to it in order to make it suit my work better. The game of soccer takes place on a bounded field and has four players, distributed across two teams. Each Player is its own Agent, they all act on the same policy and all produce trajectories for it's training. Thereby the policy is trained in play against itself. 
 
 \newpage
 
@@ -58,7 +58,20 @@ The baseline environment is in function mostly identical to the "Soccer" example
 The "Soccer" example environment uses "Ray Perception Sensors" to create an observation for the agent. A ray perception sensor works by casting a number of rays spread out through a predefined field of view. Along each of these rays a sphere is slid, starting at the agents position and stopping on collision with an object. Each ray contains information about the distance to the object it hit, and its type. The types are predefined, in the case of "Soccer" they are "wall", "enemy", "teammate", "team goal", "enemy goal" and "ball". To the agent a vector is then passed, consisting of the distance to the object the ray struck, as well as its one-hot encoded type. The above figure illustrates how one-hot encoding works and how the observation vectors looks for each ray. The observation vectors are then concatenated to form one single vector, this is then used as the input layer of my policy network. One-hot encoding is commonly used in machine learning where a type information needs to be passed as input, this way separate trainable weights are present for each category. The episode ends if either a goal is score, or a maximum of $600$ time steps pass.
 
 \subsubsection{Episode Start}\label{subsubsec:ip:environment:impl:start}
-\textcolor{red}{\textbf{WRITE IN CHAPTER \ref{chap:training} ABOUT THE RANDOMIZATION}}
+One subtle but important change I made to the "Soccer" environment is that I randomize agent position and rotation at the beginning of each episode. 
+
+\begin{lstlisting}[basicstyle=\footnotesize]
+public override void OnEpisodeBegin() {
+    timePenalty = 0;
+    m_BallTouch = m_ResetParams.GetWithDefault("ball_touch", 1f);
+    transform.rotation = Quaternion.Euler(0, (Convert.ToSingle(random.NextDouble()) - 0.5f) * m_RandomSpawnRotationOffset, 0);
+    transform.position = m_Transform + new Vector3((Convert.ToSingle(random.NextDouble()) - 0.5f) * m_RandomSpawnPositionOffset, 0, (Convert.ToSingle(random.NextDouble()) - 0.5f) * m_RandomSpawnPositionOffset);
+    agentRb.velocity = Vector3.zero;
+    agentRb.angularVelocity = Vector3.zero;
+    SetResetParameters();
+}
+\end{lstlisting}
+I made this change because without it during initial testing, agents would come to learn to simply move forward and all clash in to one another. The ball would then fly off in some direction, often scoring a goal for one of the teams. Because of this no real gameplay would arise. While the merits of this change are debatable, i opted for it. This chose was made from personal preference and in the interest gameplay intrigue.
 
 \subsubsection{Actions}\label{subsubsec:ip:environment:impl:actions}
 The environment takes continuous action input from the agent. This was not the case in the example environment provided. Three single precision floating point values are expected, they represent forward, lateral, and rotational movement respectively. This is the \code{C\#} code I use to move the agent:
@@ -97,17 +110,17 @@ One of the reasons the ML-Agents toolkit is particularly appealing is because it
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{figures/ml_agents_python_communicator.png}
-    \caption{Caption}
+    \caption{Illustration of communication between Unity and Python}
     \label{fig:python_communicator}
 \end{figure}
 
 \noindent
-Through the Python API it is possible to train multiple agents, with possibly differing Behaviours (formally, each of these behaviours would represent a different environment because the observations and actions, as well as the underlying environment functions differ from those of other behaviours, they are effectively a different MDP, see section \ref{sec:MDP}), and even to have yet other agents running on inference (acting on policies which are not being updated, here "Neural Network") or heuristics. This allows for tremendous flexibility not only in training but also allowed me to more fully consider lead question which also pertains to observation, action and reward design. On the Python side of the ML-Agents training framework there exists aside from various other classes which I will briefly cover in section \ref{sec:ip:agent_implementation}, the \code{UnityEnvironment} class. Instantiating it launches, and creates an interface with a Unity executable \cite[p. 13]{juliani2020unity}. From an instance of \code{UnityEnvironment} information about the observation and action type and size can be obtained. During training and evaluation observations, actions, stepping of the environment, and restarting episodes are all handled through this class's members.
+Through the Python API it is possible to train multiple agents, with possibly differing behaviours (formally, each of these behaviours represent a different environment because the observations and actions, as well as the underlying environment functions differ from those of other behaviours, they are effectively different MDPs, see section \ref{sec:MDP}), and even to have yet other agents running on inference (acting on policies which are not being updated, here "Neural Network") or heuristics. This allows for tremendous flexibility not only in training but also enabled me to more fully consider my lead question which also pertains to observation, action and reward design. On the Python side of the ML-Agents training framework there exists, the \code{UnityEnvironment} class. Instantiating it launches, and creates an interface with, a Unity executable \cite[p. 13]{juliani2020unity}. From an instance of \code{UnityEnvironment} information about the observation and action type and size can be obtained. During training and evaluation observations, actions, stepping of the environment, and restarting episodes are all handled through this class's members.
 
-\section{The Agent Implementation}\label{sec:ip:agent_implementation}
+\section{Agent Implementation}\label{sec:ip:agent_implementation}
 In this section I will go over the agent implementation in Python. This encompasses the architecture of the Neural Network and the components necessary for training and evaluating an agent.
 
-\subsection{The Agent Policy}\label{subsec:ip:agent:network}
+\subsection{Agent Policy}\label{subsec:ip:agent:network}
 In \ref{subsec:ip:environment:implementation} I explained the layout of the observation provided by the environment. With it and knowledge of what type of actions the environment expects, the policy network can be constructed. Both of these can be obtained through an instance of the \code{UnityEnvironment} class, \code{env} in the code below:
 
 \begin{lstlisting}[basicstyle=\footnotesize]
@@ -130,10 +143,10 @@ The number of neurons in the last layer before the mean output is the smallest p
 \end{figure}
 
 \noindent
-This structure provided stable results during initial testing. By creating a comparatively smooth reduction in unit count across layers, each neuron has to encode a limited amount of information. I did not first step up the layer size because for the task at hand, an initial layer size of $256$ seemed sufficient. The last layer does also not have an activation function, and its bias is initialized to be zero. This leads to untrained initial mean values centered on zero. During initial testing this lead to higher stability and likelyhood of convergence on a performant policy. This is also suggested in \citepg{335}. For baseline training I use rectified linear units \cite[pg. 189]{Goodfellow-et-al-2016}, neurons with $\max(0, x)$ as the activation. I initialize the weights in this network using the initialization proposed in \cite[p. 251]{glorot_understanding_2010}, where weights are sampled from $U\left[ -\frac{1}{\sqrt{n}}, \frac{1}{\sqrt{n}} \right]$ with $n$ being the number of units in the previous layer. Since I could not find any conclusive evidence on what the best activation and method of initialization are, these choices are mostly arbitrary, and reflect the default options of the Keras API. I cover alternatives in \ref{sec:tr:param_tweaking}.
+This structure provided stable results during initial testing. By creating a comparatively smooth reduction in unit count across layers, each neuron has to encode a limited amount of information. I did not first step up the layer size because for the task at hand, an initial layer size of $256$ seemed sufficient. The last layer does also not have an activation function, and its bias is initialized to be zero. This leads to untrained initial mean values centered on zero. During initial testing this lead to higher stability and likelyhood of convergence on a performant policy. This is also suggested in \citepg{335}. For baseline training I use rectified linear units \cite[pg. 189]{Goodfellow-et-al-2016}, neurons with $\max(0, x)$ as the activation. Neurons using this go by the name of "ReLU", Rectified Linear Units. I initialize the weights in this network using the initialization proposed in \cite[p. 251]{glorot_understanding_2010}, where weights are sampled from $U\left[ -\frac{1}{\sqrt{n}}, \frac{1}{\sqrt{n}} \right]$ with $n$ being the number of units in the previous layer, I will refer to this method of initialization as "glorot uniform". Since I could not find any conclusive evidence on what the best activation and method of initialization are, these choices are mostly arbitrary, and reflect the default options of the Keras API. I cover alternatives in \ref{sec:tr:param_tweaking}.
 
-\subsubsection{Sigma Trainable Variables}\label{subsubsec:ip:agent:policy:std}
-Creating input independent trainable variables can be a bit tricky in Keras, especially in conjunction with its model saving system. However, it is possible by subclassing \code{tensorflow.keras.Layer}. I created such a sub classed custom Keras layer, the code follows. In it \code{tensorflow} is aliased by \code{tf}:
+\subsubsection{Single Trainable Variables for Standard Deviation}\label{subsubsec:ip:agent:policy:std}
+Creating input independent trainable variables can be a bit tricky in Keras, especially in conjunction with it's model saving system. However, it is possible by subclassing \code{tensorflow.keras.Layer}. I created such a sub classed custom Keras layer, the respective code follows. In it \code{tensorflow} is aliased by \code{tf}:
 
 \begin{lstlisting}[basicstyle=\footnotesize]
 class IndependentTrainableVarLayer(tf.keras.layers.Layer):
@@ -163,12 +176,12 @@ The graph for the combined model for for the mean and standard deviation returne
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.5\linewidth]{figures/placeholder.png}
-    \caption{Full Model}
+    \caption{Structure of baseline Keras model}
     \label{fig:full_model_graph}
 \end{figure}
 
 \noindent
-From this model the means and standard deviation for a given observation can the be obtained by simply calling it on said observation, an action can then be obtained with \code{tensorflow.random.normal()}. Its first argument is the output shape of the actions, its second are the respective means, and its last the standard deviations. A Keras model expects the first dimension of the input tensor to correspond to a batch of inputs. The resulting output will correspond to the batched input, the model is applied to each item of the input batch. This is convenient since \code{UnityEnvironment} provides the observation for each of its agents in one tensor where the first dimension corresponds to the agents. Thereby the actions for every agent following a particular policy can be obtained with the following method:
+From this model the means and standard deviations for a given observation can the be obtained by simply calling it on said observation, an action can then be constructed with \code{tensorflow.random.normal()}. It's first argument is the output shape of the actions, its second are the respective means, and its last the standard deviations. A Keras model expects the first dimension of the input tensor to correspond to a batch of inputs. The resulting output will correspond to the batched input, the model is applied to each item of the input batch. This is convenient since \code{UnityEnvironment} provides the observation for each of its agents in one tensor where the first dimension corresponds to the agents. Thereby the actions for every agent following a particular policy can be obtained with the following method:
 
 \begin{lstlisting}[basicstyle=\footnotesize]
 @tf.function
@@ -204,10 +217,10 @@ Recall the gradient used in the reinforce update:
     G_t \nabla \ln{\pi(A_t | S_t, \theta_t)}
 \end{equation*}
 
-First the mean, here \code{mu}, and the standard deviation of the probability distributions are sampled from the policy network for all observations, here \code{states}. Based on these the probability density can then be obtained for the cached action sampled from the normal distributions during an episode. This is what makes up $\pi(A_t | S_t, \theta_t)$. Next the log of this is computed. Finally, the loss, the expression with respect to which the gradient is derived, is computed as \code{loss_pi}. The returns are computed from the rewards through vectorized operations, the function I use for this is to be found in \ref{appendix:code:returns}. From this the gradients \code{grads_pi} can then be obtained using the alias for the context manager \code{tape}. It is noteworthy that all operations here are element wise. The negative of \code{returns * log_probabilities} is used because gradient ascent, is simply gradient descent performed along the negative gradients. The \code{policy_optimizer} is an implementation of Adam (see \ref{subsec:gd:adam}). This works because for the optimization step only the gradients need to be known. Lastly, in \citepg{328} $\theta$ is updated for every timestep in envery episode sampled from environment interaction. However, since $\nabla J(\theta)$ is the expectation of the gradient above, updating with the average of a batch of samples of this gradient is going to yield a better approximation of $\nabla J(\theta)$, Keras' implementation of Adam does exactly this. 
+First the mean, here \code{mu}, and the standard deviation of the probability distributions are sampled from the policy network for all observations, here \code{states}. Based on these the probability density can then be obtained for the cached action sampled from the normal distributions during an episode. This corresponds to $\pi(A_t | S_t, \theta_t)$. Next the natural log is applied. Finally, the loss, the expression with respect to which the gradient is derived, is \code{loss_pi}. The returns are computed from the rewards through vectorized operations, the function I use for this is to be found in \ref{appendix:code:returns}. The gradients \code{grads_pi} can be obtained using the alias for the context manager \code{tape}. It is noteworthy that all operations here are element wise. The negative of \code{returns * log_probabilities} is used because gradient ascent, is simply gradient descent performed along the negative gradients. The gradients are clipped to prevent unstable updates when they are overly large. The \code{policy_optimizer} is an implementation of Adam (see \ref{subsec:gd:adam}). This works because for the optimization step only the gradients need to be known. Lastly, in \citepg{328} $\theta$ is updated for every timestep in envery episode sampled from environment interaction. However, since $\nabla J(\theta)$ is the expectation of the gradient above, updating with the average of a batch of samples of this gradient is going to yield a better approximation of $\nabla J(\theta)$, Keras' implementation of Adam does exactly this. 
 
 \subsection{Caching Experience and Batched Training}\label{subsec:ip:agent:archive}
-Because of restrictions in the speed in which environment interaction is possible, having only a single agent interact with the environment would quickly become a bottleneck for training time. The base "Soccer" environment provided by unity, is laid out for training $32$ agents simultaneously. This has the consequence that the policy cannot be trained after every episode. To deal with this I use two buffer systems. One, encompassed by the \code{Trajectory} class, stores observations, actions, and rewards of an episode. Once the episode terminates, its returns are computed with the method found in \ref{appendix:code:returns}, and the data is fed to a central dataset. The following preprocessing is then applied to the dataset:
+Because of restrictions in the speed in which environment interaction is possible, having only a single agent interact with the environment would quickly become a bottleneck for training time. The base "Soccer" environment provided by unity, is laid out for training $32$ agents simultaneously. This has the consequence that the policy cannot be trained after every episode without throwing out all other trajectories, or changing policy mid episode. To deal with this I use two buffer systems. One, encompassed by the \code{Trajectory} class, stores observations, actions, and rewards of an episode. Once the episode terminates, its returns are computed with the method found in \ref{appendix:code:returns}, and the data is fed to a central dataset. The following preprocessing is then applied to the dataset:
 
 \begin{lstlisting}[basicstyle=\footnotesize]
 def train(self, states: tf.Tensor, actions: tf.Tensor, returns: tf.Tensor, measurer: Measurer = None):
@@ -223,7 +236,7 @@ def train(self, states: tf.Tensor, actions: tf.Tensor, returns: tf.Tensor, measu
 \end{lstlisting}
 
 \noindent
-This preprocessing randomizes the order of the environment interaction samples, and breaks the training process up in to batches. This is not an issue, because the rewards are computed beforehand. The randomization is used to break temporal corelation between samples in a batch, thereby including a broader range of states in it. The rational behind this was that a broader range of states and thereby transitions should lead to a better approximation of $\nabla J(\theta)$. Using Adam each batch correlates to a timestep during optimization. Batch size is one of the parameters explored in \ref{sec:tr:param_tweaking}.
+This randomizes the order of the environment interaction samples, and breaks the training process up in to batches. This is not an issue, because the rewards are computed beforehand. The randomization is used to break temporal corelation between samples in a batch, thereby including a broader range of states in it. The rational behind this was that a broader range of states and thereby transitions should lead to a better approximation of $\nabla J(\theta)$. Using Adam each batch correlates to a timestep during optimization. Batch size is one of the parameters explored in \ref{sec:tr:param_tweaking}.
 
 \section{End-to-End Training and Evaluation}\label{sec:ip:training_testing}
 
@@ -233,16 +246,16 @@ Here I will briefly go over the code structure I used. The figure below serves t
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.7\linewidth]{figures/placeholder.png}
-    \caption{Code Structure used in training}
+    \caption{Code structure used in training}
     \label{fig:code_structure}
 \end{figure}
 
 \noindent
-The Keras model used for policy approximation is wrapped by the an subclass of \code{BasePolicyModel}. As such it implements method for training based on archived training data, saving the Keras model, and providing actions sampled from the policy. Implementations of \code{Agent}, then hold this model wrapper, as well as an instance of \code{ BaseTrainingBuffer}, and a dictionary mapping \code{Trajectory} to all agents following a conceptual Unity behaviour, which an \code{Agent} corresponds to. The main training loop then communicates with \code{Agent}'s and itself acts as an interface between Unity and the Behaviour specific training code. 
+The Keras model used for policy approximation is wrapped by a subclass of \code{BasePolicyModel}. As such it implements methods for training based on archived training data, saving the Keras model, and providing actions sampled from the policy. Implementations of \code{Agent} hold this model wrapper, as well as an instance of \code{ BaseTrainingBuffer}, and a dictionary, mapping a \code{Trajectory} to all agents following a conceptual Unity behaviour, which an \code{Agent} corresponds to. The main training loop communicates with \code{Agent} and itself acts as an interface between Unity and the Behaviour specific training code. 
 
 
 \subsection{The Training Loop}\label{subsec:ip:tt:training_loop}
-The code below shows the main loop I use to train agents. This loop generalizes for any number of behaviours, for all of which \code{Agent}'s are instantiated dynamically at run time based on parameters. However in the case of the baseline "Soccer" environment only behaviour, and thereby agent is used. \code{agents} is a mapping from Unity's behaviour names to \code{Agent} objects.
+The code below shows the main loop I use to train agents. This loop generalizes for any number of behaviours, for all of which \code{Agent}s are instantiated dynamically at run time based on parameters. However in the case of the baseline "Soccer" environment, there only is a single behaviour, and thereby agent. \code{agents} is a mapping from Unity's behaviour names to \code{Agent} objects.
 \begin{lstlisting}[basicstyle=\footnotesize]
 for iteration in range(ParameterData.iterations):
     t_step = 0
@@ -270,10 +283,52 @@ for iteration in range(ParameterData.iterations):
 \end{lstlisting}
 \noindent
 The training is performed for a number of iterations preset by a parameter. During each iteration the agents interact with the environment until a sufficient number of samples are accumulated. At each timestep, which here is refering to the synchronized time steps with Unity, decision steps and terminal steps are obtained from Unity. \code{agents} is a mapping from Unity's behaviour names to \code{Agent} objects. \code{decision_steps} is of the type \code{DecisionSteps} and contains the rewards for the previous step, and observations based on which Unity expects actions.
-\code{terminal_steps} is of type \code{TerminalSteps} but oposed to decision steps it only contains the rewards for the last timestep in an episode. \code{Agent.handle_decision_steps} and \code{Agent.handle_terminal_steps} both handle training data buffering operations.
-\noindent
-\\ Once all agents have gathered a sufficient amount of training data, their \code{train()} methods are called and performance as well as stability metrics are collected and logged using TensorFlow's inbuilt logging system, TensorBoard.
+\code{terminal_steps} is of type \code{TerminalSteps} but oposed to decision steps it only contains the rewards for the last timestep in an episode. \code{Agent.handle_decision_steps} and \code{Agent.handle_terminal_steps} both handle training data buffering operations. Once all agents have gathered a sufficient amount of training data, their \code{train()} methods are called and performance as well as stability metrics are collected and logged.
 
-\textcolor{red}{\textbf{IMAGE OF TENSORBOARD UI AND DATA, ALSO MAYBE SETTABLE PARAMETERS???}}
-\subsection{Evaluation}\label{subsec:ip:tt:eval}
+\subsection{Training Variables}\label{subsec:ip:tt:params}
+Throughout my work I have introduced many Variables. Below I Provide a short table of the ones used in the baseline environment, where they are used, and their their baseline value. \\
+\begin{tabular}{ |p{4cm}||p{3cm}|p{3cm}|p{3cm}|  }
+ \hline
+ \multicolumn{4}{|c|}{Training Parameters} \\
+ \hline
+ Parameter & Symbol & Value & Used in Section\\
+ \hline
+ discount factor & $\gamma$ & 0.99 & \ref{subsec:goals}\\
+ samples per iteration &  & $524288 = 2^19$ & \ref{subsec:ip:agent:archive}\\
+ batch size &  & $16384 = 2^{14}$ &  \ref{subsec:ip:agent:archive}\\
+ learning rate (lr) & $\alpha$ & 0.0003 & \ref{gd:what_is_it}\\
+ clipping threshold &  & 10 & \ref{subsec:ip:agent:training_func}\\
+ 1\textsuperscript{st} momentum decay & $\rho_1$ & 0.9 & \ref{subsec:gd:adam}\\
+ 2\textsuperscript{nd} momentum decay & $\rho_2$ & 0.999 & \ref{subsec:gd:adam}\\
+ activation function &  & ReLU & \ref{subsec:ip:agent:network}\\
+ initialization method &  & glorot uniform & \ref{subsec:ip:agent:network}\\
+ 
+ \hline
+\end{tabular}
+
+\subsection{Evaluation}\label{subsec:ip:tt:eval} 
+To evaluate agent performance during training the metric I use is the average return obtained at each time step. However this brings some limitations when comparing to agents using different parameters because fundamentally, agents are performing self play during training. Since the data of both sides is logged, an increase in agent performance is necessarily also also an increase in it's opponents performance. To account for this I am going to choose parameters based on relative performance. Following the example in \cite{juliani2020unity}, I am going to implement an Elo rating. This is the rating system most famously used in chess. The Elo rating of a player $A$ is updated after a game has been played against $B$ by first calculated the expected score according to:
+
+\begin{equation*}
+    E_A = \frac{1}{1+10^{\frac{\left(R_B-R_A\right)}{400}}}
+\end{equation*}
+\noindent
+which can be interpreted as the expected probability of $A$ winning. Then, $A$'s Elo rating $R_A$ can be updated:
+
+\begin{equation*}
+    R'_A = R_A + k(S_A-E_A)
+\end{equation*}
+\noindent
+Where $k$ is a constant that determines the weight of each game, in my working i am going to use 4. $S_A$ is the actual score which must also be a valid probability in my case 0 for a loss, 1 for a victory, and 0.5 if the episode terminates because the maximum number of time steps were reached. The number 400 is an arbitrary scaling factor, I follow the example of chess in using it. When evaluating each agent starts out with a score of 1000, then that score is adjusted by playing 1000 games against agents trained on every other permutation of a particular parameter.
+\noindent
+\\ During training I additionally monitor episode length and the $\mu$ and $\sigma$ values of the normal distribution for continuous actions. This gives me some insight in to training process. In addition to this I log the parameters used in training using TensorBoard, TensorFlow's inbuilt logging system. TensorBoard can host a local server which can the be accessed through a client web GUI:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{figures/placeholder.png}
+    \caption{TensorBoard}
+    \label{fig:tensorboard}
+\end{figure}
+
+
 
