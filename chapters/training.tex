@@ -1,28 +1,32 @@
 % !TEX root = ../maturaarbeit.tex
 \chapter{Training the Agent}\label{chap:training}
-In this chapter I will cover the results of Training agents in the "Soccer" environment and it's variations. Further I will discuss some of the aspects of training an agent in general, presented on the example of my specific environment, therein providing an answer for my original research question.
+In this chapter I will cover the results of training agents in the "Soccer" environment and it's variations. Further I will discuss some of the aspects of training an agent in general, presented on the example of my specific environment, therein providing an answer for my original research question.
 \nolinebreak 
 % How can a DRL algorithm be trained to choose optimal actions in an environment and how can its performance be influenced and improved?
 % Wie Lässt sich ein DRL Algorithmus trainieren optimale Aktionen in einer Umgebung zu wählen und wodurch lässt sich seine Leistung beeinflussen und verbessern?
 \section{Baseline Results}\label{sec:tr:baseline_results}
-Here I will quickly cover the results of the baseline training. Due to computational constraints I limited training to 100 million samples. Using the baseline parameters, this is the graph of the average returns received with respect to samples trained on:
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\linewidth]{figures/placeholder.png}
-    \caption{Average returns over samples}
+    \includegraphics[width=0.7\linewidth]{figures/baseline.png}
+    \caption{Illustration of playing behaviour}
     \label{fig:base_returns}
 \end{figure}
 % initally random stuff
 \noindent
+Baseline training was fairly successful. Performance of the learned policy exceeded expectations, leading to real gameplay. When observing play on inference, a few behavioural become apparent. When the ball rolls towards an agent's own goal it tend's to push it to the side, sometimes bouncing it of the rounded corner, to the other side of the playing field, from where it may proceed to "counter". 
+\\ Generally, the agents seem to have learned a very aggressive "ball chasing" behaviour, which sometimes leads to pushing the ball in to their own goal in an attempt to catch up to it. Further if both agents of one team are close to the ball, they display "infighting" behaviour, which often leads to the ball being lost instead of a goal being scored.
+\\At times agents also get the ball stuck in corners. I am uncertain if this is exploitative behaviour, hitting it repeatedly could lead to much higher return values than scoring goals. I think most these patterns may be the result of too high a reward for touching the ball. 
 
 % improved 
 % 1-2 strategies
-\section{Optimization in Code}\label{sec:tr:optimization}
+\section{Parallelization}\label{sec:tr:parallel}
 In the "Soccer" environment the operation time of \code{UnityEnvironment.step()} is relatively high, leading to roughly 90\% of training time being spent waiting for it to return. Because f this higher degrees of parallelization  are needed. By default, in the baseline environment 32 agents are already trained in parallel. However increasing this number only seemed to increase execution time further. The suggestion of increasing simulation speed proposed in \cite{noauthor_unity-technologiesml-agents_2020} seemed to cause instability. Hence, I decided to run multiple instances of \code{UnityEnvironment} in parallel. For this I created the handler class \code{Manager}. Its full code can be found in \ref{appendix:code:env_manager}. The training loop does not change much using it, \code{UnityEnvironment}'s \code{get_steps} and \code{set_actions} are ported over, the most major change is that \code{Manager.acquire()} must be called at the beginning of each step, and \code{Manager.release()} at its end, as opposed to \code{UnityEnvironment.step()}. This class functions by using two queues, one for the environment instances which need to be acted upon, and one for the ones on which \code{.step()} needs to be called. The stepping method is handled by separate threads launched with Pythons wrapper for its threading module, \code{multiprocessing.dummy}. While environment in the main training loop, environment stepping is handled in the background. 
 % \section{Lower Iteration Times through Parallelization}\label{sec:tr:parallel}
-\section{Optimizations in Algorithm}\label{sec:tr:param_tweaking}
-The gains in performance to be made through algorithmic and parameter optimizations are like most significant. Here I present some changes to rewards given by the environment, and present optimization through parameter tweaking.
+
+
+\section{Optimization}\label{sec:tr:param_tweaking}
+The gains in performance to be made through parameter optimizations and, in case of simulation, environment design, are considerable and thus essential to agent training. Changes to reward and training parameters are presented below.
 
 \subsection{Tweaking Parameters}\label{subsec:tr:opt_alg:parameters}
 When tweaking parameters I stopped training at 20 million samples due to computational cost. Then I let the agents play 2560 games against every other parameter. The elo can then be computed through iteration where the actual score of $A$ playing against $B$ is $p_{win} + \frac{1}{2}p_{tie}$.
@@ -77,11 +81,14 @@ The half life here refers to the number of future steps at which a reward is wei
 \end{table}
 
 \noindent
-While both 0.001 and 0.0003 outperform 0.0001 considerably, between them there is no significant difference, their chances of winning against the other are 49.7\% $\pm$ 1.0 and 49.5\% $\pm$ 1.0, for 0.001 and 0.0003 respectively. The unaccounted for 0.8\% are ties. 
+While both 0.001 and 0.0003 outperform 0.0001 considerably, between them there is no significant difference, their chances of winning against the other are 49.7\% $\pm$ 2.7 and 49.5\% $\pm$ 2.7, for 0.001 and 0.0003 respectively. The unaccounted for 0.8\% are ties. 
+
+
+
+
 
 
 \iffalse
-
 \\From this data it becomes apparent why the elo is necessary, as neither a simple win percentage, nor the results from self play reveal the actually most performant learning rate. The correctness of the elo rating is backed up by the table below, which shows that even though the agents trained with a learning rate of 0.001 won a higher percentage of games played, the agents trained with a learning rate of 0.0003 outperformed both of the other parameter permutations. All other parameters are left at their default value, unless specified. 
 \begin{table}[H]
     \begin{center}
@@ -96,21 +103,24 @@ While both 0.001 and 0.0003 outperform 0.0001 considerably, between them there i
     \caption{Relative scores w.r.t. learning rate}
     \label{tab:why_elo}
 \end{table}
-
 \fi
 
-\subsubsection{Batch Size and Count}\label{subsubsec:tr:opt_alg:params:batch}
+
+
+
+
+\subsubsection{Batch Size}\label{subsubsec:tr:opt_alg:params:batch}
 \begin{table}[H]
 \begin{center}
-\begin{tabular}{ |l|l|l|l|  }
+\begin{tabular}{ |l|l|l|l|l|  }
  \hline
- \multicolumn{4}{|c|}{Batch Size} \\
+ \multicolumn{5}{|c|}{Batch Size} \\
  \hline
  \hline
-  & $16384 = 2^{14}$ & $4096 = 2^{12}$ & $1024 = 2^{10}$ \\
+  & $16384 = 2^{14}$ & $4096 = 2^{12}$ & $1024 = 2^{10}$ & $256 = 2^8$ \\
  \hline
- elo & 981.0 & 1024.3 & 994.6 \\
- batch count & 32 & 128 & 512 \\
+ elo & 989.8 & 997.7 & 1008.0 & 1004.5 \\
+ batch count & 32 & 128 & 512 & 2048 \\
  %win percentage & 48.3 & 52.6 & 48.9 \\
  %avg. returns (self play) & 0.483 & 0.673 & 0.527 \\
  \hline
@@ -121,6 +131,7 @@ While both 0.001 and 0.0003 outperform 0.0001 considerably, between them there i
 \end{table}
 
 \noindent
+The agent trained on my original batch size performs comparatively poorly. A batch size of 4096 still is seemingly too large. The difference in results between 1024 and 256 is not significant.
 
 
 \subsubsection{Activation Function and Initialization Method}\label{subsubsec:tr:opt_alg:params:batch}
@@ -147,7 +158,7 @@ While both 0.001 and 0.0003 outperform 0.0001 considerably, between them there i
 \label{tab:elo_activation_init}
 \end{table}
 \noindent
-ReLU and Swish significantly outperform Sigmoid across the board. However when looking at relative win percentages it only outperforms Swish with he $50.9\% \pm 1.0$, i will be re-running their tests with 100 million samples. Sigmoid performance is very poor. Overall Glorot activation outperforms He Normal. This discrepancy between previous research and my implementation may have myriad reasons, I could imagine that the difference in network architecture and and task are the most notable. 
+ReLU and Swish significantly outperform Sigmoid across the board. When looking at relative win percentages ReLU with Glorot only outperforms Swish with He $50.9\% \pm 2.7$ of games. Overall Glorot activation outperforms He Normal. 
 
 
 
@@ -185,26 +196,43 @@ As can be seen the baseline decaying network architecture clearly performed best
 \label{tab:elo_network}
 \end{table}
 \noindent
-
 \fi
-\section{Variations on the Environment}\label{sec:tr:variations}
-\subsection{Changes to Rewards}\label{subsec:tr:env:rewards}
+
+
+
+
 %\subsection{Generality of Algorithm}\label{subsec:tr:env:generality}
-\section{Final Agent Performance}
 % different rewards
 % generality of algorithm
+\subsection{Changes in Reward}\label{subsec:tr:alg}
+
+The rewards given by the environment greatly affects agent training. If the option is available, changes to the rewards provided might have a greater effect than many other changes combined. Changing the reward is a double edged sword however, since if effectively changes the goal of the agent. While rewards for touching the ball, (as are present in the baseline environment) might kick start training, it does not describe the behaviour desired, which is scoring goals and therein winning the match. 
+In the "discounted" environment I attempt to ameliorate agent performance by reducing reward to the behaviour actually sought, winning the game. 
+
+\begin{table}[H]
+    \begin{center}
+    \begin{tabular}{ |l|l|l|l|l| }
+        \hline
+        \multicolumn{5}{|c|}{Changes in Reward}\\
+        \hline
+        \hline
+         & baseline & penalty \& reward & penalty only & discounted \\
+        \hline
+        elo & 1000.7 & 1040.3 & 1010.7 & 948.3 \\ 
+        \hline
+    \end{tabular}
+    \end{center}u
+    \caption{Elo ratings for different rewards}
+    \label{tab:my_label}
+\end{table}
 
 
-\section{Significance of Data}
-The Standard Error in win percentages between parameters variations is fairly low, games between agents are technically multinomial distributions but because ties are so infrequent, (on average $\approx$ 0.5\% of outcomes), i aprroximate it as a Bernoulli trial, standard error then is $\sqrt{\frac{p_{win} \cdot (1 - p_{win})}{n}}$ which is $\approx$0.010, or 1.0\% for all parameters, which corresponds to a difference in elo between parameters of approximately 6.9 points. The more troublesome error is in the difference between between runs. I cannot control the random seed used for Unity, which makes 1 to 1 repeatability of runs impossible. Monte Carlo approximation of the error is prohibitively expensive for full runs.
-
-
-
-\section{Variations on the Environment}\label{sec:tr:variations}
-\subsection{Changes to Rewards}\label{subsec:tr:env:rewards}
 %\subsection{Generality of Algorithm}\label{subsec:tr:env:generality}
-\section{Final Agent Performance}
+\section{Final Agent}
 Here I compare my baseline Agent, against the agent trained with optimized parameters, and against Unity's pre-trained Agent. The results against unity are not directly comparable 
+
+\subsection{Configuration}
+This discrepancy between previous research and my implementation may have myriad reasons, I could imagine that the difference in network architecture and and task are the most notable. 
 % different rewards
 % generality of algorithm
 
