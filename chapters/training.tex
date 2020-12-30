@@ -81,7 +81,7 @@ The half life here refers to the number of future steps at which a reward is wei
 \end{table}
 
 \noindent
-While both 0.001 and 0.0003 outperform 0.0001 considerably, between them there is no significant difference, their chances of winning against the other are 49.7\% $\pm$ 2.7 and 49.5\% $\pm$ 2.7, for 0.001 and 0.0003 respectively. The unaccounted for 0.8\% are ties. 
+While both 0.001 and 0.0003 outperform 0.0001 considerably, between them there is no significant difference, their chances of winning against the other are 49.7\% $\pm$ 1.8 and 49.5\% $\pm$ 1.8, for 0.001 and 0.0003 respectively. The unaccounted for 0.8\% are ties. 
 
 
 
@@ -158,7 +158,7 @@ The agent trained on my original batch size performs comparatively poorly. A bat
 \label{tab:elo_activation_init}
 \end{table}
 \noindent
-ReLU and Swish significantly outperform Sigmoid across the board. When looking at relative win percentages ReLU with Glorot only outperforms Swish with He $50.9\% \pm 2.7$ of games. Overall Glorot activation outperforms He Normal. 
+ReLU and Swish significantly outperform Sigmoid across the board. When looking at relative win percentages ReLU with Glorot only outperforms Swish with He $50.9\% \pm 1.8$ of games. Overall Glorot activation outperforms He Normal. 
 
 
 
@@ -204,10 +204,44 @@ As can be seen the baseline decaying network architecture clearly performed best
 %\subsection{Generality of Algorithm}\label{subsec:tr:env:generality}
 % different rewards
 % generality of algorithm
-\subsection{Changes in Reward}\label{subsec:tr:alg}
+
+
+
+\iffalse
+%\subsection{Generality of Algorithm}\label{subsec:tr:env:generality}
+\section{Final Agent}\label{sec:tr:final_agent}
+Here I compare my baseline Agent, against the agent trained with optimized parameters, one with the improvements made in \ref{subsec:tr:opt:reward}, and against Unity's pre-trained Agent. It needs to be noted here that Unity's agent uses discrete actions, while mine acts continuously. Result presented here are therefor less of a comparison between learning algorithm's but rather a comparison between overall implementation.
+\fi
+
+
+
+
+\subsection{Final Agent Configuration}\label{subsec:tr:opt:configuration}
+\begin{table}[H]
+    \begin{center}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        \multicolumn{4}{|c|}{Parameters Used for Final Agent}\\
+        \hline
+        \hline
+        discount factor & learning rate & batch size & activation \& initialization \\
+        \hline
+        0.95 & 0.0003 & $1024 = 2^{10}$ & ReLU \& Glorot\\
+        \hline
+    \end{tabular}
+    \end{center}
+    \caption{Final Agent Parameters}
+    \label{tab:final_agent_parameters}
+\end{table}
+
+\noindent
+Some of the choices in parameters made here are not all based on conclusive results results. This is the case for the learning rate, the batch size and activation / initialization method. In these cases I simply selected the parameter which yielded the best results in the respective test, even if these are not statistically significant. This configuration outperforms the baseline in 60.3\% $\pm$ 1.8 of runs, this is a significantly larger improvement than any individual parameter produced, this suggests to me that they are not incompatible. The agent movement seems much less erratic trained with these parameters. The "infighting behaviour" has however worsened. 
+
+\subsection{Different Reward Structures}\label{subsec:tr:opt:reward}
 
 The rewards given by the environment greatly affects agent training. If the option is available, changes to the rewards provided might have a greater effect than many other changes combined. Changing the reward is a double edged sword however, since if effectively changes the goal of the agent. While rewards for touching the ball, (as are present in the baseline environment) might kick start training, it does not describe the behaviour desired, which is scoring goals and therein winning the match. 
-In the "discounted" environment I attempt to ameliorate agent performance by reducing reward to the behaviour actually sought, winning the game. 
+\\In the "discounted" environment I attempt to ameliorate agent performance by reducing reward to the behaviour actually sought, winning the game. I multiply the reward received when touching the ball by $d(x) = 1/(1+\exp(3x-0.7))$ applied to the exponentially weighted moving average (decay rate = 0.999) of the total sum of rewards per episode. If the total sum of rewards grows large, then this term shrinks, the reward for touching the ball vanishes once sufficient initial performance has been obtained.
+\\ The "penalty only" environment gives a reward of -0.02 of the enemy touches the ball, while in addition to this change the "reward \& penalty" environment gives positive reward of 0.02 when a team member touches the ball. These are all attempts at mitigating the "infighting" and possibly exploitative behaviour described in \ref{sec:tr:baseline_results}. The parameters are the same as for the final agent, they can be found in \ref{subsec:tr:final:configuration}. Below are the elo scores from training.
 
 \begin{table}[H]
     \begin{center}
@@ -218,21 +252,38 @@ In the "discounted" environment I attempt to ameliorate agent performance by red
         \hline
          & baseline & penalty \& reward & penalty only & discounted \\
         \hline
-        elo & 1000.7 & 1040.3 & 1010.7 & 948.3 \\ 
+        elo & 1041.3 & 1023.7 & 1000.0 & 935.0 \\ 
         \hline
     \end{tabular}
-    \end{center}u
+    \end{center}
     \caption{Elo ratings for different rewards}
     \label{tab:my_label}
 \end{table}
 
+\noindent
+Performance was highest with the baseline rewards, and by a significant margin at that. When examining run data the curves for episode lengths are a lot rougher. To me this suggests that for these environments to function, parameters would need to be optimized de novo. From this i also infer a comparatively low degree of generalizability for my training algorithm.
 
-%\subsection{Generality of Algorithm}\label{subsec:tr:env:generality}
-\section{Final Agent}
-Here I compare my baseline Agent, against the agent trained with optimized parameters, and against Unity's pre-trained Agent. The results against unity are not directly comparable 
+\section{Performance against Unity}\label{sec:tr:performance}
+The last set of tests I performed was in play against unity. Unity's performance cannot be directly compared to that of my implementation, as it was trained for, and uses, discrete actions, meaning it's agents can only move at given velocities and turn by fixed angles. Instead this is better viewed as a comparison between performance using continuous and discrete control. Continuous control, which is useful in any task which would benefit from smooth action, such as moving an arm or turning a steering wheel, is the main reason I chose policy gradient methods, this type of action is not possible in many other commonly used learning methods. 
+The following table shows the results of my testing:
 
-\subsection{Configuration}
-This discrepancy between previous research and my implementation may have myriad reasons, I could imagine that the difference in network architecture and and task are the most notable. 
-% different rewards
-% generality of algorithm
+\begin{table}[H]
+    \begin{center}
+    \begin{tabular}{ |l|l|l|l| }
+        \hline
+        \multicolumn{4}{|c|}{Unity (discrete) vs. my work (continuous)}\\
+        \hline
+        \hline
+         & baseline  & final & Unity \\
+        \hline
+        elo & 998.9 & 1094.6 & 906.5 \\ 
+        win \% against Unity & 59.9 $\pm$ 1.8 & 77.8 $\pm$ 1.6 &  \\
+        \hline
+    \end{tabular}
+    \end{center}
+    \caption{Elo ratings for different rewards}
+    \label{tab:my_label}
+\end{table}
 
+\noindent
+The agent using updated parameters clearly performs best. While the baseline agent already outperforms the Unity by a significant margin, the Agent using updated parameters sees an increase in performance over baseline against Unity of at least 15.5 percent, this is major. These results help make a strong case for continuous control, thereby they validate my choice.

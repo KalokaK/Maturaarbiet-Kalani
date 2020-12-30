@@ -1,6 +1,6 @@
 % !TEX root = ../maturaarbeit.tex
 \newpage
-\section{Solutions with Policy Gradient Methods: WORK IN PROGRESS}\label{sec:policy_gradient}
+\section{Solutions with Policy Gradient Methods}\label{sec:policy_gradient}
 \noindent
 In this section I shall briefly present Policy Gradient methods, their advantages and aim to give an intuitive understanding of their operation to the reader. Policy Gradients (PG) are the basis of the algorithm used in this thesis to solve the soccer problem. They are one of the main methods used in modern Reinforcement Learning. Countless algorithms build on them, one of which I will present and use here. The reason I chose policy gradient methods for my work their ability to elegantly handle continuous action spaces as well as their high relevance in state of the art Reinforcement Learning. However, there are other widely used and highly viable methods as well \cite{arulkumaran_brief_2017}. Policy Gradient Methods Rely on the concept of the policy as a function which produces a probability distribution over the action space, and the concept of gradient ascent, which i discussed in the previous section \ref{gd:gradient_ascent}. At the end of that section I mentioned how Gradient Descent / Ascent could be used in Learning, By defining a Performance Measure dependant on the policy's parameters, and then differentiating that with respect to those parameters, thereby finding out in what direction to change them in order to improve the policy. Here I will present just such a measure, denoted as $J(\theta)$. 
 

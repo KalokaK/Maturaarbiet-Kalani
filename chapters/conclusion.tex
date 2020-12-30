@@ -4,6 +4,16 @@
 % talk about doing actuall rl not restrict
 % throw some shade
 %say throw away shit network data
+\section{How is an Agent Trained in Reinforcement Learning?}
+In the spring of 2020 I asked my research question: "How can a reinforcement learning algorithm be trained to choose optimal actions in an environment and how can its performance be influenced and improved?". How this is done in the case of policy gradient based learning in an environment which simulates a game of soccer, I believe to have answered by means of example in the preceding chapters. However, I would now take the position that this is asking the wrong question. Reinforcement Learning exists as tool to solve complex problems which require "intelligent" decision making, and which are not easily solved programmatically. Currently this seems to revolve around getting machines to perform tasks which are intuitive to humans, but would be useful if automated. Reinforcement learning on games serves to introduce the field, and as  a challenge to produce solutions which in term have real world applications. But reinforcement learning solely for its own sake, to my current understanding only has educative and entertainment use. A much better question would be asking how a specific problem, or class of problems is solved, to which reinforcement learning may then be the answer.
+
+\section{Results of Thesis}
+The results of my work are a trained agent which produces high quality play in the modified version of the "Soccer" environment provided by Unity, I believe it shows nicely the capabilities of even comparatively simple policy gradient based agents. The large performance improvement over Unity's discrete implementation also serves as an illustrative example of the value of continuous control, which is only possible through reinforcement learning, and the main reason why I opted to make use of policy gradient methods, it confirms this decision. The baseline trained agent already produced results, which were much better than I had anticipated. Through optimization performed chapter \ref{chap:training} this increased again by a considerable margin. In addition to the trained agent and the implementation of training with Unity, I personally I have learned a great deal, I would now claim to be able to answer my research question of how a reinforcement learning agent is trained, however flawed it might be. Conversely I have also gained a deeper understand of what the field encompasses and what knowledge I still lack, there is much which I have left out in this thesis and a equal amount which I would have liked to include but extended far past the scope of my work. 
+
+\section{Reflection}
+Overall I am content with the outcome of my work. However, there are some things which I would do differently, were I to start over, with the knowledge I have acquired. For one, I would ask a different research question. There are many still unsolved tasks which reinforcement learning suits, which could be tackled from different angles in this thesis. I would most likely also refrain from using TensorFlow, at least in Python, as it has caused many delays. I might also want to chose an environment which scales better with hardware as Agent training for even a relatively simple problem such as this soccer simulation incurs immense computational and temporal cost, including initial testing, though much of this was in parallel, total training time during this thesis including initial testing was roughly 250 hours. Some of this was due to inefficiencies in my methodology, and perhaps poor code performance. 
+
+\chapter{Acknowledgements}
 
 
 % frage beantworten EXPLIZIT
@@ -11,3 +21,5 @@
 % was gelernt
 
 % bezug auf diskussion was anders machen
+
+% DANKSAGUNG KAPITEL

@@ -15,7 +15,7 @@
 %======================================================================%
 %=== Dokumentklasse wählen                                          ===%
 %======================================================================%
-\documentclass[a4paper,openright]{scrreprt}
+\documentclass[a4paper,openright,12pt]{scrreprt}
 
 %======================================================================%
 %=== Pakete einbinden                                               ===%
@@ -23,9 +23,11 @@
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
 
+
 % Latin Modern Schriftart
 \usepackage{lmodern}
 \usepackage[T1]{fontenc}
+
 
 % Mathematik-Pakete
 \usepackage{amsmath}
@@ -118,12 +120,13 @@ sorting=ynt
 
 \titlehead{Kantonsschule im Lee \hfill Kalani Fin Kistler\\
 Fachschaft Mathematik \hfill Dättnauerstrasse 107\\
-Rychenbergstrasse \hfill 8406 Winterthur\\
-8400 Winterthur}
+% Rychenbergstrasse \hfill 8406 Winterthur\\
+% 8400 Winterthur
+}
 \subject{Matura Thesis 20/21}
 \title{Policy Gradient Based Reinforcement Learning Applied to Playing Soccer}
 \author{\texorpdfstring{Kalani Fin Kistler, 4h \\[1cm]\includegraphics[scale=0.2]{figures/Screenshot from 2020-09-22 23-05-59.png}\\[1cm] {\small Supervisor: Elena Fattorini}}{Kalani Fin Kistler 4h}}
-\date{\small 04.01.2021}
+\date{\small Winterthur, 04.01.2021}
 %======================================================================%
 %=== PDF Dokumenteinstellungen                                      ===%
 %======================================================================%
@@ -140,14 +143,24 @@ Rychenbergstrasse \hfill 8406 Winterthur\\
 	linkcolor=black,%
 	urlcolor=black}
 \makeatother
-\usepackage[bottom=80pt]{geometry}
 
+\linespread{1}
+
+\usepackage{geometry}
+ \geometry{
+ a4paper,
+ right=30mm,
+ left=30mm,
+ top=30mm,
+ }
 
 %======================================================================%
 %=== Beginn des eigentlichen Dokumentes                             ===%
 %======================================================================%
 
 \begin{document}
+
+\fontfamily{lmr}\selectfont
 
 \maketitle % <- Titel setzen
 \cleardoublepage
@@ -156,10 +169,6 @@ Rychenbergstrasse \hfill 8406 Winterthur\\
 \cleardoublepage % <- neue Seite
 \pagenumbering{arabic} % <- arabische Seitennummerierung
 
-% Kapitel einbinden:
-
-\chapter*{NOTES FOR CHAPTER HAND IN ONLY, NOT ON FINAL}
-Due to the fact that I am not yet familiar with vector graphics and wanted to focus on writing, the figures are temporary stand ins, meant only to convey the content of the final image, and are not the final images themselves.
 
 \input{chapters/introduction}
 \input{chapters/background}

@@ -3,6 +3,9 @@
 \section{Function approximation using Artificial Neural Networks}\label{sec:neural_networks}
 All throughout this chapter I have talked about the policy being a function which maps environment states to a probability distribution over the set of actions. It follows that an optimal policy $\pi^*(a|s)$ is a function which maps the respective best possible distribution to each state. In reinforcement learning we do not know that optimal policy, if we did there wouldn't be any problem to solve. \textit{Artificial Neural Networks} (ANN) offer a method of approximating a general target function $f^*(x)$ \cite[p. 164]{Goodfellow-et-al-2016}. In policy gradient based reinforcement learning they are commonly used to directly approximate the optimal policy. In this section I will cover how a simple type of ANN, a \textit{multilayer perceptron} (MLP), functions. To explain MLPs I will first cover what a perceptron is, and then explain how multiple perceptrons can be combined to form an MLP.
 
+\subsection{Components of a Multilayer Perceptron}\label{subsec:nn:components_mlp}
+To explain MLPs I will first cover what a perceptron is, and then explain how multiple perceptrons can be combined to form an MLP.
+
 \subsubsection{Perceptron}\label{subsubsec:nn:comp:perceptron}
 As their name implies, artificial neural networks are made up of neurons, or rather artificial ones. One type of such is neuron is the perceptron \cite[chap. 1]{nielsen_neural_2015}. A perceptron, takes several weighted inputs and produces a single output. Unlike in other types of artificial neurons, in a perceptron that output is binary. 
 
@@ -44,6 +47,3 @@ Perceptrons use a step function to produce a binary output. However, in modern n
 
 \noindent
 A rearranged example of this can be found in \cite[chap. 1]{nielsen_neural_2015} in the section on sigmoid neurons (the sigmoid function used there is the logistic function, they are often used interchangeably). In notation, biases are also included in $\theta$.
-
-\subsection{Solving Grid World with Policy Approximation PROLLY NOT SIKE}\label{subsec:nn:example}
-In this section i am going to use a simple MLP to approximate an optimal policy for playing slot machines. The exact environmen
